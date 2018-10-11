@@ -1,0 +1,13 @@
+HACHAGE
+- Générer plusieurs mots de passe (8 char)
+- Hash + Réduction sur chacun d'entre eux (50,000)
+- Écrire les couples dans un fichier
+CRACKAGE
+- Demander hash
+- Lire le(s) fichier(s) contenant les couples
+- Comparer avec hash finaux
+- Réduire Hasher et recommencer étape précédente (max 50,000 fois)
+- Si hash final trouvé, partir du mot de passe initial
+- Hash et réduire ce mot de passe 49,999 fois
+- Le mot de passe est celui-là
+- Si non trouvé, table pas assez bonne
