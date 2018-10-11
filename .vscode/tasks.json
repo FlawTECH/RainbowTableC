@@ -8,7 +8,8 @@
             "type": "shell",
             "command": "gcc",
             "args": [
-                "src/main.c",
+                "src/*.c",
+                "lib/*.c",
                 "-g",
                 "-o", "bin/main.exe"
             ],

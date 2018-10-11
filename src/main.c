@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "../lib/sha256.h"
 
 int main()
 {
@@ -7,5 +8,6 @@ int main()
     char hellow[6] = "Hello";
     hello = 3;
     printf("%5s world !%d", hellow, hellos[2]);
+    system("pause");
     return 0;
 }
