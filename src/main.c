@@ -27,8 +27,19 @@ char *randomString(int length) {
         randstr[i] = alphabet[intN(strlen(alphabet))];
     }
     randstr[length] = '\0';
-    printf("\nrandstr:%d\n\n",strlen(randstr));
     return randstr;
+}
+
+void PrintHex(unsigned char * data) 
+{
+	
+    char tmp[16];
+    for (int i=0; i<32; i++) { 
+		
+    	printf("%02x",data[i]); 
+   	 	
+    }
+	
 }
 
 int main()
@@ -36,14 +47,19 @@ int main()
     //fait en sorte que la fonction "rand" genère un nouveau nombre random en fonction du temps
     srand(time(NULL));
 
-    int hello;
-    int hellos[5] = {0,2,4,6,8};
-    char hellow[6] = "Hello";
-    hello = 3;
-    printf("%5s world !%d", hellow, hellos[2]);
+	unsigned char hash[32];
+	SHA256_CTX ctx;
+	sha256_init(&ctx);
 
-    printf("\n\n%s\n", randomString(8));
+	char* password = randomString(8);
+    
 
+	printf("password a trouver : %s\n", password);
+	sha256_update(&ctx,password,sizeof password);
+ 	sha256_final(&ctx,hash);
+	printf("hash du password: ");
+	PrintHex(hash);
+	printf("\n");
     system("pause");
     return 0;
 }
