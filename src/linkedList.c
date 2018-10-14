@@ -11,7 +11,7 @@ int add(LinkedList* list, char* value) {
 	}
 
 	node->value = value;
-
+	node->next = NULL;
 	if (isEmpty(*list)) {
 		*list = node;
 	} else {
@@ -33,14 +33,14 @@ int isEmpty(LinkedList list) {
 	return list == NULL;
 }
 
-// runs through the list to find a match with the password
+// runs through the list to find a match with the hash
 
-char* getPassword(LinkedList* list, char* password) {
+char* getPassword(LinkedList* list, char* hash) {
 	Node* walker = *list;
 	
 	int result;
 	
-	while (walker->next != NULL && (result = strcmp(walker->next->value, password)) != 0) {
+	while (walker->next != NULL && (result = strcmp(walker->next->value, hash)) != 0) {
 		walker = walker->next;
 	}
 
