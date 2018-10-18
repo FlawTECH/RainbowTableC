@@ -35,11 +35,19 @@ char *randomString(int length) {
     return randstr;
 }
 
+void passwordHashing(char* password, unsigned char* hash)
+{
+    SHA256_CTX ctx;
+	sha256_init(&ctx);
+
+    sha256_update(&ctx,password,sizeof password);
+ 	sha256_final(&ctx,hash);
+    
+}
+
 void PrintHex(unsigned char * data) 
 {
 	
-    char tmp[16];
-    char hashFinal[32];
     for (int i=0; i<32; i++) { 
 		
     	printf("%02x",data[i]); 
@@ -48,21 +56,23 @@ void PrintHex(unsigned char * data)
 	
 }
 
-unsigned char * reduce_hash(unsigned char hash[])
+void reduce_hash(unsigned char *hash, char* reduced_hash)
 {
-    for(int x =0; x<64;x++)
+    printf("\n");
+    reduced_hash = (char*)hash;
+    for(int x =0; x<65;x++)
     {
-        if(hash[x]=='9')
+        printf("%c,",reduced_hash[x]);
+        if(reduced_hash[x]=='9')
         {
-            hash[x]='a';
+            reduced_hash[x]='a';
         }
         else{
-            hash[x]=hash[x]+1;
+            reduced_hash[x]=reduced_hash[x]+1;
         }
         
     }
-    
-    return hash;
+
 }
 
 
@@ -105,10 +115,7 @@ void readfile(void)
 int main(int argc, char *argv[])
     {
     srand(time(NULL));
-
-	unsigned char hash[32];
-	SHA256_CTX ctx;
-	sha256_init(&ctx);
+	unsigned char hash[33];
     char tableau [NB_PASS][10];
     
     for(int y=0;y<5;y++)
@@ -126,14 +133,11 @@ int main(int argc, char *argv[])
     char* password = randomString(8);
 
 	printf("password a trouver : %s\n", password);
-	sha256_update(&ctx,password,sizeof password);
- 	sha256_final(&ctx,hash);
-	printf("hash du password: ");
+    passwordHashing(password,hash);
+    char test2[65];
     PrintHex(hash);
-	printf("\n");
-    unsigned char test[65]="a6e6b4068d8318dfa8c31f9173cf764dc10f8ec7a168b62372044c247fa3c689\0";
-    unsigned char test2[65];
-    strcpy(test2,reduce_hash(test));
+    reduce_hash(hash,test2);
+    printf("\n");
     printf("%s",test2);
     system("pause");
 
