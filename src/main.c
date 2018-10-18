@@ -33,7 +33,7 @@ char *randomString(int length) {
 void PrintHex(unsigned char * data) 
 {
 	
-    char tmp[16];
+    
     for (int i=0; i<32; i++) { 
 		
     	printf("%02x",data[i]); 
@@ -42,22 +42,30 @@ void PrintHex(unsigned char * data)
 	
 }
 
+void passwordHashing(char* password, unsigned char* hash)
+{
+    SHA256_CTX ctx;
+	sha256_init(&ctx);
+
+    sha256_update(&ctx,password,sizeof password);
+ 	sha256_final(&ctx,hash);
+    
+}
+
 int main()
 {
     //fait en sorte que la fonction "rand" genère un nouveau nombre random en fonction du temps
     srand(time(NULL));
-
-	unsigned char hash[32];
-	SHA256_CTX ctx;
-	sha256_init(&ctx);
+	
+	
 
 	char* password = randomString(8);
-    
+    unsigned char hash[65];
+
 
 	printf("password a trouver : %s\n", password);
-	sha256_update(&ctx,password,sizeof password);
- 	sha256_final(&ctx,hash);
-	printf("hash du password: ");
+    printf("hash du password: ");
+    passwordHashing(password,hash);
 	PrintHex(hash);
 	printf("\n");
     system("pause");
