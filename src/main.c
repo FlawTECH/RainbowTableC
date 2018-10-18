@@ -12,6 +12,9 @@
 /* alphanumeric: [a-z0-9] */
 const char alphabet[] = "abcdefghijklmnopqrstuvwxyz0123456789";
 
+// Déclarations de fonctions
+void reduce_hash(unsigned char*, char*);
+
 /**
  * return un entier [0, n]. 
  * n : la longeur de alphabet.
@@ -39,41 +42,35 @@ void passwordHashing(char* password, unsigned char* hash)
 {
     SHA256_CTX ctx;
 	sha256_init(&ctx);
-
-    sha256_update(&ctx,password,sizeof password);
+    sha256_update(&ctx,password, strlen(password));
  	sha256_final(&ctx,hash);
-    
 }
 
 void PrintHex(unsigned char * data) 
 {
-	
     for (int i=0; i<32; i++) { 
-		
     	printf("%02x",data[i]); 
-   	 	
+
     }
-	
+}
+
+void hexbyte_to_char(unsigned char* hexbyte, int size, char* converted_char) {
+    int j = 0;
+    for (int i=0; i<size; i++) { 
+   	 	sprintf(&converted_char[j], "%02x", hexbyte[i]);
+        j=j+2;
+    }
+    hexbyte[size*2] = '\0';
+
 }
 
 void reduce_hash(unsigned char *hash, char* reduced_hash)
 {
-    printf("\n");
-    reduced_hash = (char*)hash;
-    for(int x =0; x<65;x++)
-    {
-        printf("%c,",reduced_hash[x]);
-        if(reduced_hash[x]=='9')
-        {
-            reduced_hash[x]='a';
-        }
-        else{
-            reduced_hash[x]=reduced_hash[x]+1;
-        }
-        
-    }
-
+    sprintf(reduced_hash, "%02x", hash);
+    printf(reduced_hash);
 }
+
+
 
 
 void createFile(char var [][10])
@@ -84,7 +81,7 @@ void createFile(char var [][10])
             {     
                 for(long x = 0;x<NB_PASS;x++)
                 {
-                    fprintf(file, "%s%s \n",var[x]); //ECriture dans le fichier
+                    fprintf(file, "%s\n",var[x]); //ECriture dans le fichier
                 }     
             
             fclose(file);
@@ -115,7 +112,7 @@ void readfile(void)
 int main(int argc, char *argv[])
     {
     srand(time(NULL));
-	unsigned char hash[33];
+	unsigned char hash[65];
     char tableau [NB_PASS][10];
     
     for(int y=0;y<5;y++)
@@ -135,11 +132,10 @@ int main(int argc, char *argv[])
 	printf("password a trouver : %s\n", password);
     passwordHashing(password,hash);
     char test2[65];
-    PrintHex(hash);
-    reduce_hash(hash,test2);
+    hexbyte_to_char(hash, 32, test2);
+    printf("Son hash: %s",test2);
     printf("\n");
-    printf("%s",test2);
-    system("pause");
 
-        return 0;
+    system("pause");
+    return 0;
     }
