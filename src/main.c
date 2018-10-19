@@ -40,11 +40,11 @@ void printHex(unsigned char* data) {
     }
 }
 
-char* reduce_hash(unsigned char* hash, char* new_password, int indexReduc) {
+void reduce_hash(unsigned char* hash, char* new_password, int indexReduc) {
     char hash_entier[65];
     int i, number_to_pick;
-    char * alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    char* hash_separe = malloc(8);
+    char* alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    char* hash_separe[9];
     unsigned int number;
     int leftFromMax;
 
@@ -68,22 +68,20 @@ char* reduce_hash(unsigned char* hash, char* new_password, int indexReduc) {
         new_password[i] = alphabet[number_to_pick];    
     }
 
-    new_password[9] = '\0';
-    return new_password;
+    new_password[8] = '\0';
 }
 
-void writeFile(char* password) {
-    long x;
-    FILE* file = NULL;
-    
-    file = fopen(FILEPATH, "a+"); // changer par a+ par la suite
+void writeFile(LinkedList baseList) {
+    FILE* file;
+    file = fopen(FILEPATH, "a+");
+    LinkedList walker = baseList;
 
-    if (file != NULL) {     
-        fprintf(file, "%s", password);     
-        fclose(file);
-    } else {
-        perror("[*] Error, impossible to open the file \n");
-    }     
+    fprintf(file, "%s\n", walker->value);
+    while(walker->next != NULL) {
+        walker = walker->next;
+        fprintf(file, "%s\n", walker->value);
+    }
+    fclose(file);  
 }
 
 void hash2string(unsigned char* hash, int length, char* string) {
@@ -106,7 +104,7 @@ void readFile(void) {
 }
 
 int main(int argc, char *argv[]) {
-	int i, j;
+	int i, j, k;
     LinkedList list = NULL;
     char* password;
     char new_password[9];
@@ -114,26 +112,18 @@ int main(int argc, char *argv[]) {
     char finalHash[65];
 
     srand(time(0));
-
-    for (i = 0; i < NB_PASS; i++) {
-        list = NULL;
-        password = randomString(PASSWORD_LENGTH);
-        
-        add(&list, strcat(password, ":"));
-        writeFile(password);
-        
-        for (j = 0; j < 50000; j++) {
-            if (j % 2 == 0) {
-                passwordHashing(password, hash);
-                add(&list, hash);
-            } else {
-                password = reduce_hash(hash, new_password, i);
-                add(&list, password);
+    for(k = 0; k<5; k++) {
+        for (i = 0; i < NB_PASS; i++) {
+            password = randomString(PASSWORD_LENGTH);
+            for (j = 0; j < 50000; j++) {
+                passwordHashing(new_password, hash);
+                reduce_hash(hash, new_password, j);
             }
-        }
 
-        hash2string(hash, LENGTH_STRING, finalHash);
-        writeFile(strcat(finalHash, "\n"));
+            hash2string(hash, LENGTH_STRING, finalHash);
+            add(&list, strcat(strcat(password, ":"), finalHash));
+        }
+        writeFile(list);
     }
 
     printf("Rainbow Table successfuly created ! Enjoy ...");

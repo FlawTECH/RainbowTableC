@@ -3,7 +3,7 @@
 // adds a node to the list, if the list is empty it creates it
 
 void add(LinkedList* list, char* value) {
-	Node* node;
+	LinkedList node;
 	
 	if ((node = (Node*)malloc(sizeof(Node))) == NULL) {
 		perror("malloc add");
@@ -16,8 +16,8 @@ void add(LinkedList* list, char* value) {
 	if (isEmpty(*list)) {
 		*list = node;
 	} else {
-		Node* walker = *list;
-	
+		LinkedList walker = *list;
+		
 		while (walker->next != NULL) {
 			walker = walker->next;
 		}

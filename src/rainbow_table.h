@@ -9,7 +9,7 @@
 #define PASSWORD_LENGTH 8
 #define LENGTH_MAX 10000
 #define LENGTH_STRING 12
-#define FILEPATH "../bin/password.txt"
+#define FILEPATH "bin/password.txt"
 #define NB_PASS 200000
 
 typedef struct Node {
@@ -19,7 +19,7 @@ typedef struct Node {
 
 typedef Node* LinkedList;
 
-int add(LinkedList* list, char* value);
+void add(LinkedList* list, char* value);
 
 int isEmpty(LinkedList list);
 
