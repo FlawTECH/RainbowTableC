@@ -1,7 +1,7 @@
 #include "./rainbow_table.h"
 
 /* alphanumeric: [a-z0-9] */
-const char alphabet[] = "abcdefghijklmnopqrstuvwxyz0123456789";
+const char alphabet[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 /**
  * return un entier [0, n]. 
@@ -14,17 +14,14 @@ int intN(int n) {
 /**
  * Input: longeur du string random [a-z0-9] à générer
  */
-char* randomString(int length) {
-    //alloue la taille de randstr de longeur length
-    char *randstr = malloc((length + 1));
+void randomString(char* output, int length) {
     int i;
     
     for (i = 0; i < length; i++) {
-        randstr[i] = alphabet[intN(strlen(alphabet))];
+        output[i] = alphabet[intN(strlen(alphabet))];
     }
 
-    randstr[length] = '\0';
-    return randstr;
+    output[length] = '\0';
 }
 
 void passwordHashing(char* password, unsigned char* hash) {
@@ -43,8 +40,7 @@ void printHex(unsigned char* data) {
 void reduce_hash(unsigned char* hash, char* new_password, int indexReduc) {
     char hash_entier[65];
     int i, number_to_pick;
-    char* alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    char* hash_separe[9];
+    char hash_separe[9];
     unsigned int number;
     int leftFromMax;
 
@@ -71,16 +67,30 @@ void reduce_hash(unsigned char* hash, char* new_password, int indexReduc) {
     new_password[8] = '\0';
 }
 
-void writeFile(LinkedList baseList) {
+void writeFile(LinkedList* baseList) {
     FILE* file;
     file = fopen(FILEPATH, "a+");
-    LinkedList walker = baseList;
+    LinkedList walker = *baseList;
+    LinkedList lastValue;
 
     fprintf(file, "%s\n", walker->value);
+
+    //Walking through linked list
     while(walker->next != NULL) {
+        lastValue = walker;
         walker = walker->next;
+        //Freeing linked list members after write
+        free(lastValue);
+        lastValue = NULL;
         fprintf(file, "%s\n", walker->value);
     }
+
+    //Freeing tail and head of linked list
+    free(walker);
+    walker = NULL;
+    *baseList = NULL;
+    free(*baseList);
+
     fclose(file);  
 }
 
@@ -104,26 +114,28 @@ void readFile(void) {
 }
 
 int main(int argc, char *argv[]) {
+    system("pause");
 	int i, j, k;
     LinkedList list = NULL;
-    char* password;
+    char password[9];
     char new_password[9];
     unsigned char hash[33];
     char finalHash[65];
+    char fullChain[74];
 
     srand(time(0));
     for(k = 0; k<5; k++) {
-        for (i = 0; i < NB_PASS; i++) {
-            password = randomString(PASSWORD_LENGTH);
+        for (i = 0; i < WRITE_BUFFER; i++) {
+            randomString(password, PASSWORD_LENGTH);
             for (j = 0; j < 50000; j++) {
                 passwordHashing(new_password, hash);
                 reduce_hash(hash, new_password, j);
             }
-
-            hash2string(hash, LENGTH_STRING, finalHash);
-            add(&list, strcat(strcat(password, ":"), finalHash));
+            hash2string(hash, LENGTH_HASH/2, finalHash);
+            snprintf(fullChain, 74, "%s:%s", password, finalHash);
+            add(&list, fullChain);
         }
-        writeFile(list);
+        writeFile(&list);
     }
 
     printf("Rainbow Table successfuly created ! Enjoy ...");

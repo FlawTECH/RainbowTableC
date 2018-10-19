@@ -3,14 +3,13 @@
 // adds a node to the list, if the list is empty it creates it
 
 void add(LinkedList* list, char* value) {
-	LinkedList node;
-	
+	Node* node;
 	if ((node = (Node*)malloc(sizeof(Node))) == NULL) {
 		perror("malloc add");
 		exit(1);
 	}
 
-	node->value = value;
+	strcpy(node->value, value);
 	node->next = NULL;
 	
 	if (isEmpty(*list)) {
