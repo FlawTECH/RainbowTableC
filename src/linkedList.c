@@ -1,10 +1,10 @@
-#include "rainbow_table.h"
+#include "./rainbow_table.h"
 
 // adds a node to the list, if the list is empty it creates it
 
-int add(LinkedList* list, char* value) {
+void add(LinkedList* list, char* value) {
 	Node* node;
-
+	
 	if ((node = (Node*)malloc(sizeof(Node))) == NULL) {
 		perror("malloc add");
 		exit(1);
@@ -12,19 +12,18 @@ int add(LinkedList* list, char* value) {
 
 	node->value = value;
 	node->next = NULL;
+	
 	if (isEmpty(*list)) {
 		*list = node;
 	} else {
 		Node* walker = *list;
-
+	
 		while (walker->next != NULL) {
 			walker = walker->next;
 		}
 
 		walker->next = node;
 	}
-
-	return TRUE;
 }
 
 // checks if the list is empty
@@ -33,7 +32,7 @@ int isEmpty(LinkedList list) {
 	return list == NULL;
 }
 
-// runs through the list to find a match with the hash
+// runs through the list to find a match with the password
 
 char* getPassword(LinkedList* list, char* hash) {
 	Node* walker = *list;
