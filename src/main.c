@@ -100,22 +100,21 @@ void hash2string(unsigned char* hash, int length, char* string) {
     }
 }
 
-void readFile(void) {
+void readFile(LinkedList* list) {
     FILE* file = NULL;
     char chaine[LENGTH_MAX] = "";    
     file = fopen(FILEPATH, "r");
 
     if (file != NULL) {
          while (fgets(chaine, LENGTH_MAX, file) != NULL) {
-                printf("[*] %s", chaine);
+
         }
         fclose(file);
     }
 }
 
-int main(int argc, char *argv[]) {
-    system("pause");
-	int i, j, k;
+void generate_table(char* fileName) {
+    int i, j, k;
     LinkedList list = NULL;
     char password[9];
     char new_password[9];
@@ -139,5 +138,81 @@ int main(int argc, char *argv[]) {
     }
 
     printf("Rainbow Table successfuly created ! Enjoy ...");
+}
+
+void crack_hash(char* fileName, char* hashToCrack) {
     
+}
+
+void sort_alphabetically(LinkedList* list) {
+    
+}
+
+int main(int argc, char *argv[]) {
+	#pragma region Declarations
+
+    char* fileName;
+    char hashToCrack[LENGTH_HASH+1];
+    int opt;
+    enum {GENERATE_MODE, CRACK_MODE} mode = GENERATE_MODE;
+
+    #pragma endregion
+
+    #pragma region Argument Parsing
+    /**
+     * Argument Parsing
+     */
+
+    //If no arguments
+    if(argc == 1) {
+        fprintf(stderr, "Usage: %s [-gc] [-f TABLEFILENAME]\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+
+    //Checking all arguments
+    while((opt = getopt(argc, argv, "gc:f:")) != -1) {
+        switch(opt) {
+            case 'g':
+                mode = GENERATE_MODE;
+                break;
+            case 'c':
+                mode = CRACK_MODE;
+                if(strlen(optarg) == LENGTH_HASH) {
+                    strcpy(hashToCrack, optarg);
+                }
+                else {
+                    fprintf(stderr, "Invalid SHA256 Hash.");
+                    exit(EXIT_FAILURE);
+                }
+                break;
+            case 'f':
+                fileName = malloc(strlen(optarg));
+                strcpy(fileName, optarg);
+                break;
+            default:
+                fprintf(stderr, "Usage: %s [-gc] [-f TABLEFILENAME]\n", argv[0]);
+                exit(EXIT_FAILURE); 
+        }
+    }
+
+    /**
+     * End Argument Parsing
+     */
+    #pragma endregion
+
+    #pragma region Mode selection
+    
+    switch(mode) {
+        case GENERATE_MODE:
+            generate_table(fileName);           break;
+        case CRACK_MODE:
+            crack_hash(fileName, hashToCrack);  break;
+        default:
+            fprintf(stderr, "The program encountered an error and must close. Please try again.");
+            exit(EXIT_FAILURE);
+    }
+    #pragma endregion
+    
+    free(fileName);
+    return EXIT_SUCCESS;
 }

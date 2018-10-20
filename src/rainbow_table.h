@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include "../lib/sha256.h"
 
 #define TRUE 1
@@ -10,7 +11,7 @@
 #define LENGTH_MAX 10000
 #define LENGTH_HASH 64
 #define FILEPATH "bin/password.txt"
-#define WRITE_BUFFER 20
+#define WRITE_BUFFER 5
 
 typedef struct Node {
 	char value[74];
