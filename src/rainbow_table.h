@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <unistd.h>
 #include "../lib/sha256.h"
 
@@ -12,14 +13,20 @@
 #define FILE_BUFFER 5
 
 typedef struct Node {
-	char value[LENGTH_HASH+PASSWORD_LENGTH+2];
-	struct Node* next;
+	char 	value[LENGTH_HASH+PASSWORD_LENGTH+2];
+	struct 	Node* next;
 } Node;
 
-typedef Node* LinkedList;
+typedef struct MultiNode {
+	char 	password[PASSWORD_LENGTH+1];
+	char 	hash[LENGTH_HASH+1];
+	struct 	MultiNode* next;
+} MultiNode;
 
-void add(LinkedList* list, char* value);
+typedef Node* 		LinkedList;
+typedef MultiNode* 	MultiLinkedList;
 
-int isEmpty(LinkedList list);
-
-char* getPassword(LinkedList* list, char* password);
+void add(LinkedList*, char*);
+int isEmptyList(LinkedList);
+int isEmptyMultiList(MultiLinkedList);
+char* getPassword(LinkedList*, char*);

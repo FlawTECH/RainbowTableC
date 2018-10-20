@@ -12,7 +12,7 @@ void add(LinkedList* list, char* value) {
 	strcpy(node->value, value);
 	node->next = NULL;
 	
-	if (isEmpty(*list)) {
+	if (isEmptyList(*list)) {
 		*list = node;
 	} else {
 		LinkedList walker = *list;
@@ -27,7 +27,11 @@ void add(LinkedList* list, char* value) {
 
 // checks if the list is empty
 
-int isEmpty(LinkedList list) {
+int isEmptyList(LinkedList list) {
+	return list == NULL;
+}
+
+int isEmptyMultiList(MultiLinkedList list) {
 	return list == NULL;
 }
 

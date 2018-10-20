@@ -100,15 +100,38 @@ void hash2string(unsigned char* hash, int length, char* string) {
     }
 }
 
-void readFile(char* fileName ,LinkedList* list) {
+/**
+ * Separates hashes from passwords in a chain and stores them in two strings
+ */
+void split_chain(char* chain, char* password, char* hash) {
+    int i;
+
+    if(password!=NULL) {
+        for(i=0; i<PASSWORD_LENGTH; i++) {
+            password[i] = chain[i];
+        }
+        password[PASSWORD_LENGTH] = '\0';
+    }
+
+    if(hash!=NULL) {
+        for(i=PASSWORD_LENGTH+1; i<LENGTH_HASH+PASSWORD_LENGTH+1; i++) {
+            hash[i-PASSWORD_LENGTH-1] = chain[i];
+        }
+        hash[LENGTH_HASH] = '\0';
+    }
+}
+
+int readFile(char* fileName, MultiLinkedList* list) {
     FILE* file = NULL;
     char chaine[LENGTH_HASH+PASSWORD_LENGTH+3];
     file = fopen(fileName, "r");
-    LinkedList walker;
+    MultiLinkedList walker;
+    int counter = 0;
 
     if (file != NULL) {
-         while (fgets(chaine, LENGTH_HASH+PASSWORD_LENGTH+3, file) != NULL) { // + 3 => ":","\0" & "\n"
-            if(isEmpty(*list)) {
+        while (fgets(chaine, LENGTH_HASH+PASSWORD_LENGTH+3, file) != NULL) { // + 3 => ":","\0" & "\n"
+            counter++;
+            if(isEmptyMultiList(*list)) {
                 *list = malloc(sizeof(Node));
                 walker = *list;               
             }
@@ -116,10 +139,12 @@ void readFile(char* fileName ,LinkedList* list) {
                 walker->next = malloc(sizeof(Node));
                 walker = walker->next;
             }
-            strcpy(walker->value, chaine); 
+            split_chain(chaine, walker->password, walker->hash);
         }
         fclose(file);
     }
+
+    return counter;
 }
 
 void generate_table(char* fileName) {
@@ -135,24 +160,65 @@ void generate_table(char* fileName) {
     for(k = 0; k<5; k++) {
         for (i = 0; i < FILE_BUFFER; i++) {
             randomString(password, PASSWORD_LENGTH);
+            strcpy(new_password, password);
             for (j = 0; j < 50000; j++) {
+                if(j>0) {
+                    reduce_hash(hash, new_password, j);
+                }
                 passwordHashing(new_password, hash);
-                reduce_hash(hash, new_password, j);
             }
             hash2string(hash, LENGTH_HASH/2, finalHash);
-            snprintf(fullChain, LENGTH_HASH, "%s:%s", password, finalHash);
+            snprintf(fullChain, LENGTH_HASH+PASSWORD_LENGTH+2, "%s:%s", password, finalHash);
             add(&list, fullChain);
         }
         writeFile(fileName, &list);
     }
-
     printf("Rainbow Table successfuly created ! Enjoy ...");
 }
 
 void crack_hash(char* fileName, char* hashToCrack) {
-    LinkedList tail_hashes = NULL;
-    readFile(fileName, &tail_hashes);
-    printf("%74s", tail_hashes->next->next->next->value); //test, c'était pour test si je remplissais bien la liste chaînée
+    int chainCount;
+    int i;
+    int found = FALSE;
+    char tempHash[LENGTH_HASH+1];
+    MultiLinkedList chains = NULL;
+    MultiLinkedList walker;
+
+    for(i = 0; i<LENGTH_HASH; i++) {
+        hashToCrack[i] = tolower(hashToCrack[i]);
+    }
+
+    //Reading chains from file
+    chainCount = readFile(fileName, &chains);
+    printf("%d hashes loaded. Cracking ...\n", chainCount);
+
+    do {
+        if(isEmptyMultiList(walker)) {
+            walker = chains;
+        }
+        else {
+            walker = walker->next;
+        }
+        if(strcmp(hashToCrack, walker->hash) == 0) {
+            found = TRUE;
+            break;
+        }
+    }
+    while(walker->next != NULL);
+
+    if(found) {
+        printf("Hash found ! Computing plaintext ...\n");
+        for(i = 0; i<50000; i++) {
+            if(i>0) {
+                reduce_hash(tempHash, walker->password, i);
+            }
+            passwordHashing(walker->password, tempHash);
+        }
+        printf("Password found for %64s. \n==> %8s\n", hashToCrack, walker->password);
+    }
+    else {
+        printf("Password not found, generate more hashes.");
+    }
     system("pause");
 }
 
@@ -225,7 +291,12 @@ int main(int argc, char *argv[]) {
     }
     #pragma endregion
     
+    #pragma region Destructors
+
     fileName = NULL;
     free(fileName);
+
+    #pragma endregion
+
     return EXIT_SUCCESS;
 }
