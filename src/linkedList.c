@@ -4,7 +4,7 @@
 
 void add(LinkedList* list, char* value) {
 	Node* node;
-	if ((node = (Node*)malloc(sizeof(Node))) == NULL) {
+	if ((node = malloc(sizeof(Node))) == NULL) {
 		perror("malloc add");
 		exit(1);
 	}

@@ -12,7 +12,7 @@
             "args": [
                 "-c", "c1ae917736b9b0bab400a4e02f5c50fed4c20f3d4877fe453062ddc77a4cf85e",
                 // "-g",
-                "-f", "password.txt"
+                "-f", "bin/password.txt"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

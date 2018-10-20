@@ -8,13 +8,11 @@
 #define TRUE 1
 #define FALSE 0
 #define PASSWORD_LENGTH 8
-#define LENGTH_MAX 10000
 #define LENGTH_HASH 64
-#define FILEPATH "bin/password.txt"
-#define WRITE_BUFFER 5
+#define FILE_BUFFER 5
 
 typedef struct Node {
-	char value[74];
+	char value[LENGTH_HASH+PASSWORD_LENGTH+2];
 	struct Node* next;
 } Node;
 

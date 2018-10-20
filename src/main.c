@@ -38,19 +38,19 @@ void printHex(unsigned char* data) {
 }
 
 void reduce_hash(unsigned char* hash, char* new_password, int indexReduc) {
-    char hash_entier[65];
+    char hash_entier[LENGTH_HASH+1];
     int i, number_to_pick;
-    char hash_separe[9];
+    char hash_separe[PASSWORD_LENGTH+1];
     unsigned int number;
     int leftFromMax;
 
-    for (i = 0; i < 32; i++){
+    for (i = 0; i < LENGTH_HASH/2; i++){
         sprintf(hash_entier + i*2, "%02x", hash[i]); //Créer le hash avec l'argument "hash" que recoit la fonction
     }
    
-    for (i = 0; i < 8; i++) {
+    for (i = 0; i < PASSWORD_LENGTH; i++) {
         strncpy(hash_separe, hash_entier + (i * 8), 8);
-        hash_separe[8] = '\0';
+        hash_separe[PASSWORD_LENGTH] = '\0';
         number = (unsigned int)strtoul(hash_separe, NULL, 16);
         leftFromMax = UINT_MAX - number;
         
@@ -60,16 +60,16 @@ void reduce_hash(unsigned char* hash, char* new_password, int indexReduc) {
         }
 
         number += indexReduc;
-        number_to_pick = number % 62;
+        number_to_pick = number % strlen(alphabet);
         new_password[i] = alphabet[number_to_pick];    
     }
 
-    new_password[8] = '\0';
+    new_password[PASSWORD_LENGTH] = '\0';
 }
 
-void writeFile(LinkedList* baseList) {
+void writeFile(char* fileName, LinkedList* baseList) {
     FILE* file;
-    file = fopen(FILEPATH, "a+");
+    file = fopen(fileName, "a+");
     LinkedList walker = *baseList;
     LinkedList lastValue;
 
@@ -86,8 +86,8 @@ void writeFile(LinkedList* baseList) {
     }
 
     //Freeing tail and head of linked list
-    free(walker);
     walker = NULL;
+    free(walker);
     *baseList = NULL;
     free(*baseList);
 
@@ -100,14 +100,23 @@ void hash2string(unsigned char* hash, int length, char* string) {
     }
 }
 
-void readFile(LinkedList* list) {
+void readFile(char* fileName ,LinkedList* list) {
     FILE* file = NULL;
-    char chaine[LENGTH_MAX] = "";    
-    file = fopen(FILEPATH, "r");
+    char chaine[LENGTH_HASH+PASSWORD_LENGTH+3];
+    file = fopen(fileName, "r");
+    LinkedList walker;
 
     if (file != NULL) {
-         while (fgets(chaine, LENGTH_MAX, file) != NULL) {
-
+         while (fgets(chaine, LENGTH_HASH+PASSWORD_LENGTH+3, file) != NULL) { // + 3 => ":","\0" & "\n"
+            if(isEmpty(*list)) {
+                *list = malloc(sizeof(Node));
+                walker = *list;               
+            }
+            else {
+                walker->next = malloc(sizeof(Node));
+                walker = walker->next;
+            }
+            strcpy(walker->value, chaine); 
         }
         fclose(file);
     }
@@ -116,32 +125,35 @@ void readFile(LinkedList* list) {
 void generate_table(char* fileName) {
     int i, j, k;
     LinkedList list = NULL;
-    char password[9];
-    char new_password[9];
-    unsigned char hash[33];
-    char finalHash[65];
-    char fullChain[74];
+    char password[PASSWORD_LENGTH+1];
+    char new_password[PASSWORD_LENGTH+1];
+    unsigned char hash[(LENGTH_HASH/2)+1];
+    char finalHash[LENGTH_HASH+1];
+    char fullChain[LENGTH_HASH+PASSWORD_LENGTH+2];
 
     srand(time(0));
     for(k = 0; k<5; k++) {
-        for (i = 0; i < WRITE_BUFFER; i++) {
+        for (i = 0; i < FILE_BUFFER; i++) {
             randomString(password, PASSWORD_LENGTH);
             for (j = 0; j < 50000; j++) {
                 passwordHashing(new_password, hash);
                 reduce_hash(hash, new_password, j);
             }
             hash2string(hash, LENGTH_HASH/2, finalHash);
-            snprintf(fullChain, 74, "%s:%s", password, finalHash);
+            snprintf(fullChain, LENGTH_HASH, "%s:%s", password, finalHash);
             add(&list, fullChain);
         }
-        writeFile(&list);
+        writeFile(fileName, &list);
     }
 
     printf("Rainbow Table successfuly created ! Enjoy ...");
 }
 
 void crack_hash(char* fileName, char* hashToCrack) {
-    
+    LinkedList tail_hashes = NULL;
+    readFile(fileName, &tail_hashes);
+    printf("%74s", tail_hashes->next->next->next->value); //test, c'était pour test si je remplissais bien la liste chaînée
+    system("pause");
 }
 
 void sort_alphabetically(LinkedList* list) {
@@ -213,6 +225,7 @@ int main(int argc, char *argv[]) {
     }
     #pragma endregion
     
+    fileName = NULL;
     free(fileName);
     return EXIT_SUCCESS;
 }
