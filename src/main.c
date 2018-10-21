@@ -1,4 +1,4 @@
-#include "./rainbow_table.h"
+#include "rainbow_table.h"
 
 /* alphanumeric: [a-z0-9] */
 const char alphabet[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -29,12 +29,6 @@ void passwordHashing(char* password, unsigned char* hash) {
 	sha256_init(&ctx);
     sha256_update(&ctx, password, sizeof password);
  	sha256_final(&ctx, hash);
-}
-
-void printHex(unsigned char* data) {
-    for (int i = 0; i < 32; i++) { 
-    	printf("%02x",data[i]); 
-    }
 }
 
 void reduce_hash(unsigned char* hash, char* new_password, int indexReduc) {
@@ -113,7 +107,7 @@ void split_chain(char* chain, char* password, char* hash) {
         password[PASSWORD_LENGTH] = '\0';
     }
 
-    if(hash!=NULL) {
+    if(hash != NULL) {
         for(i=PASSWORD_LENGTH+1; i<LENGTH_HASH+PASSWORD_LENGTH+1; i++) {
             hash[i-PASSWORD_LENGTH-1] = chain[i];
         }
@@ -156,24 +150,33 @@ void generate_table(char* fileName) {
     char finalHash[LENGTH_HASH+1];
     char fullChain[LENGTH_HASH+PASSWORD_LENGTH+2];
 
+    clock_t begin = clock();
+
     srand(time(0));
-    for(k = 0; k<5; k++) {
-        for (i = 0; i < FILE_BUFFER; i++) {
+    
+    for (k = 0; k < 5 * 2; k++) { // pq 3 boucles ?
+        for (i = 0; i < FILE_BUFFER * 10; i++) {
             randomString(password, PASSWORD_LENGTH);
             strcpy(new_password, password);
+
             for (j = 0; j < 50000; j++) {
-                if(j>0) {
+                if(j > 0) { // wut ? 
                     reduce_hash(hash, new_password, j);
                 }
                 passwordHashing(new_password, hash);
             }
+
             hash2string(hash, LENGTH_HASH/2, finalHash);
             snprintf(fullChain, LENGTH_HASH+PASSWORD_LENGTH+2, "%s:%s", password, finalHash);
             add(&list, fullChain);
         }
+        
         writeFile(fileName, &list);
     }
-    printf("Rainbow Table successfuly created ! Enjoy ...");
+
+    clock_t end = clock();
+    double time_spent = (double) (end - begin) / CLOCKS_PER_SEC;
+    printf("Rainbow Table successfuly created in %f ! Enjoy ...", time_spent);
 }
 
 void crack_hash(char* fileName, char* hashToCrack) {
@@ -203,10 +206,9 @@ void crack_hash(char* fileName, char* hashToCrack) {
             found = TRUE;
             break;
         }
-    }
-    while(walker->next != NULL);
+    } while(walker->next != NULL);
 
-    if(found) {
+    if (found) {
         printf("Hash found ! Computing plaintext ...\n");
         for(i = 0; i<50000; i++) {
             if(i>0) {
