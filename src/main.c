@@ -37,7 +37,32 @@ void printHex(unsigned char* data) {
     }
 }
 
-void reduce_hash(unsigned char* hash, char* new_password, int indexReduc) {
+void reduce__full_hash(char* hash_entier, char* reduced_hash, int indexReduc) {
+    int i, number_to_pick;
+    char hash_separe[PASSWORD_LENGTH+1];
+    unsigned int number;
+    int leftFromMax;
+   
+    for (i = 0; i < PASSWORD_LENGTH; i++) {
+        strncpy(hash_separe, hash_entier + (i * 8), 8);
+        hash_separe[PASSWORD_LENGTH] = '\0';
+        number = strtoul(hash_separe, NULL, 16);
+        leftFromMax = UINT_MAX - number;
+        
+        if (indexReduc > leftFromMax) {
+            indexReduc -= leftFromMax;
+            number = 0;
+        }
+
+        number += indexReduc;
+        number_to_pick = number % strlen(alphabet);
+        reduced_hash[i] = alphabet[number_to_pick];    
+    }
+
+    reduced_hash[PASSWORD_LENGTH] = '\0';
+}
+
+void reduce_hash(unsigned char* hash, char* reduced_hash, int indexReduc) {
     char hash_entier[LENGTH_HASH+1];
     int i, number_to_pick;
     char hash_separe[PASSWORD_LENGTH+1];
@@ -61,10 +86,10 @@ void reduce_hash(unsigned char* hash, char* new_password, int indexReduc) {
 
         number += indexReduc;
         number_to_pick = number % strlen(alphabet);
-        new_password[i] = alphabet[number_to_pick];    
+        reduced_hash[i] = alphabet[number_to_pick];    
     }
 
-    new_password[PASSWORD_LENGTH] = '\0';
+    reduced_hash[PASSWORD_LENGTH] = '\0';
 }
 
 void writeFile(char* fileName, LinkedList* baseList) {
@@ -114,22 +139,22 @@ void split_chain(char* chain, char* password, char* hash) {
     }
 
     if(hash!=NULL) {
-        for(i=PASSWORD_LENGTH+1; i<LENGTH_HASH+PASSWORD_LENGTH+1; i++) {
+        for(i=PASSWORD_LENGTH+1; i<PASSWORD_LENGTH+PASSWORD_LENGTH+1; i++) {
             hash[i-PASSWORD_LENGTH-1] = chain[i];
         }
-        hash[LENGTH_HASH] = '\0';
+        hash[PASSWORD_LENGTH] = '\0';
     }
 }
 
 int readFile(char* fileName, MultiLinkedList* list) {
     FILE* file = NULL;
-    char chaine[LENGTH_HASH+PASSWORD_LENGTH+3];
+    char chaine[(PASSWORD_LENGTH*2)+3];
     file = fopen(fileName, "r");
     MultiLinkedList walker;
     int counter = 0;
 
     if (file != NULL) {
-        while (fgets(chaine, LENGTH_HASH+PASSWORD_LENGTH+3, file) != NULL) { // + 3 => ":","\0" & "\n"
+        while (fgets(chaine, (PASSWORD_LENGTH*2)+3, file) != NULL) { // + 3 => ":","\0" & "\n"
             counter++;
             if(isEmptyMultiList(*list)) {
                 *list = malloc(sizeof(Node));
@@ -139,82 +164,94 @@ int readFile(char* fileName, MultiLinkedList* list) {
                 walker->next = malloc(sizeof(Node));
                 walker = walker->next;
             }
-            split_chain(chaine, walker->password, walker->hash);
+            split_chain(chaine, walker->head, walker->tail);
         }
         fclose(file);
     }
-
+    walker->next = NULL;
     return counter;
 }
 
 void generate_table(char* fileName) {
     int i, j, k;
     LinkedList list = NULL;
-    char password[PASSWORD_LENGTH+1];
-    char new_password[PASSWORD_LENGTH+1];
+    char head[PASSWORD_LENGTH+1];
+    char tail[PASSWORD_LENGTH+1];
     unsigned char hash[(LENGTH_HASH/2)+1];
-    char finalHash[LENGTH_HASH+1];
-    char fullChain[LENGTH_HASH+PASSWORD_LENGTH+2];
+    char fullChain[(PASSWORD_LENGTH*2)+2];
 
     srand(time(0));
     for(k = 0; k<5; k++) {
         for (i = 0; i < FILE_BUFFER; i++) {
-            randomString(password, PASSWORD_LENGTH);
-            strcpy(new_password, password);
+            randomString(head, PASSWORD_LENGTH);
+            strcpy(tail, head);
             for (j = 0; j < 50000; j++) {
-                if(j>0) {
-                    reduce_hash(hash, new_password, j);
-                }
-                passwordHashing(new_password, hash);
+                passwordHashing(tail, hash);
+                reduce_hash(hash, tail, j);
             }
-            hash2string(hash, LENGTH_HASH/2, finalHash);
-            snprintf(fullChain, LENGTH_HASH+PASSWORD_LENGTH+2, "%s:%s", password, finalHash);
+            snprintf(fullChain, (PASSWORD_LENGTH*2)+2, "%s:%s", head, tail);
             add(&list, fullChain);
         }
         writeFile(fileName, &list);
     }
     printf("Rainbow Table successfuly created ! Enjoy ...");
+    system("pause");
 }
 
 void crack_hash(char* fileName, char* hashToCrack) {
     int chainCount;
-    int i;
+    int i, j, reducIndex;
     int found = FALSE;
+    int startFlag = TRUE;
     char tempHash[LENGTH_HASH+1];
+    char tempPassword[PASSWORD_LENGTH+1];
     MultiLinkedList chains = NULL;
     MultiLinkedList walker;
 
-    for(i = 0; i<LENGTH_HASH; i++) {
-        hashToCrack[i] = tolower(hashToCrack[i]);
-    }
-
     //Reading chains from file
     chainCount = readFile(fileName, &chains);
-    printf("%d hashes loaded. Cracking ...\n", chainCount);
+    printf("%d entries loaded. Cracking ...\n", chainCount);
 
-    do {
-        if(isEmptyMultiList(walker)) {
-            walker = chains;
+    for(i=0; i<50000; i++) {
+        strcpy(tempHash, hashToCrack);
+        for(j=49999-i; j<50000; j++) {
+            if(j==49999) {
+                reduce__full_hash(tempHash, tempPassword, j);
+            }
+            else {
+                reduce_hash(tempHash, tempPassword, j);
+            }
+            passwordHashing(tempPassword, tempHash);
         }
-        else {
-            walker = walker->next;
+        printf("\n");
+        startFlag = TRUE;
+        do {
+            if(startFlag) {
+                walker = chains;
+                startFlag = FALSE;
+            }
+            else {
+                walker = walker->next;
+            }
+            if(strcmp(tempPassword, walker->tail) == 0) {
+                found = TRUE;
+                reducIndex = 49999 - i;
+                i = 50000;
+                j = 50000;
+                break;
+            }
         }
-        if(strcmp(hashToCrack, walker->hash) == 0) {
-            found = TRUE;
-            break;
-        }
+        while(walker->next != NULL);
     }
-    while(walker->next != NULL);
 
     if(found) {
         printf("Hash found ! Computing plaintext ...\n");
-        for(i = 0; i<50000; i++) {
-            if(i>0) {
-                reduce_hash(tempHash, walker->password, i);
-            }
-            passwordHashing(walker->password, tempHash);
+        strcpy(tempPassword, walker->head);
+        for(i=0; i<reducIndex; i++) {
+            passwordHashing(tempPassword, tempHash);
+            reduce_hash(tempHash, tempPassword, i);
         }
-        printf("Password found for %64s. \n==> %8s\n", hashToCrack, walker->password);
+        printf("Password found for %64s. \n==> %8s\n", hashToCrack, tempPassword);
     }
     else {
         printf("Password not found, generate more hashes.");

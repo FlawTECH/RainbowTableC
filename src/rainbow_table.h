@@ -13,13 +13,13 @@
 #define FILE_BUFFER 5
 
 typedef struct Node {
-	char 	value[LENGTH_HASH+PASSWORD_LENGTH+2];
+	char 	value[(PASSWORD_LENGTH*2)+2];
 	struct 	Node* next;
 } Node;
 
 typedef struct MultiNode {
-	char 	password[PASSWORD_LENGTH+1];
-	char 	hash[LENGTH_HASH+1];
+	char 	head[PASSWORD_LENGTH+1];
+	char 	tail[PASSWORD_LENGTH+1];
 	struct 	MultiNode* next;
 } MultiNode;
 

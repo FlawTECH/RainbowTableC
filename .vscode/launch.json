@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/bin/main.exe",
             "args": [
-                "-c", "096f3f8ae68d62bad50b3741a170148116e4e3e9835b48461eb7840de7e9e22a",
+                "-c", "9c24e39ca3acbf54e49e7451b9deb1a51e0e1071b5b906a1b865e4ddd53d7f9d",
                 // "-g",
                 "-f", "bin/password.txt"
             ],
