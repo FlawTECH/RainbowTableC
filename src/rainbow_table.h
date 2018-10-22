@@ -5,12 +5,14 @@
 #include <ctype.h>
 #include <unistd.h>
 #include "../lib/sha256.h"
+#include <pthread.h>
 
 #define TRUE 1
 #define FALSE 0
 #define PASSWORD_LENGTH 8
 #define LENGTH_HASH 64
 #define FILE_BUFFER 5
+#define THREAD_NUMBER 4
 
 typedef struct Node {
 	char 	value[(PASSWORD_LENGTH*2)+2];
