@@ -62,15 +62,19 @@ void reduce__full_hash(char* hash_entier, char* reduced_hash, int indexReduc) {
     reduced_hash[PASSWORD_LENGTH] = '\0';
 }
 
-void reduce_hash(unsigned char* hash, char* reduced_hash, int indexReduc) {
+void reduce_hash(unsigned char* hash, char* reduced_hash, int isLongHash, int indexReduc) {
     char hash_entier[LENGTH_HASH+1];
     int i, number_to_pick;
     char hash_separe[PASSWORD_LENGTH+1];
     unsigned int number;
     int leftFromMax;
-
-    for (i = 0; i < LENGTH_HASH/2; i++){
-        sprintf(hash_entier + i*2, "%02x", hash[i]); //Créer le hash avec l'argument "hash" que recoit la fonction
+    if(!isLongHash) {
+        for (i = 0; i < LENGTH_HASH/2; i++){
+            sprintf(hash_entier + i*2, "%02x", hash[i]); //Créer le hash avec l'argument "hash" que recoit la fonction
+        }
+    }
+    else {
+        strcpy(hash_entier, hash);
     }
    
     for (i = 0; i < PASSWORD_LENGTH; i++) {
@@ -187,7 +191,7 @@ void generate_table(char* fileName) {
             strcpy(tail, head);
             for (j = 0; j < 50000; j++) {
                 passwordHashing(tail, hash);
-                reduce_hash(hash, tail, j);
+                reduce_hash(hash, tail, FALSE, j);
             }
             snprintf(fullChain, (PASSWORD_LENGTH*2)+2, "%s:%s", head, tail);
             add(&list, fullChain);
@@ -203,6 +207,7 @@ void crack_hash(char* fileName, char* hashToCrack) {
     int i, j, reducIndex;
     int found = FALSE;
     int startFlag = TRUE;
+    int isLongHash = TRUE;
     char tempHash[LENGTH_HASH+1];
     char tempPassword[PASSWORD_LENGTH+1];
     MultiLinkedList chains = NULL;
@@ -214,16 +219,12 @@ void crack_hash(char* fileName, char* hashToCrack) {
 
     for(i=0; i<50000; i++) {
         strcpy(tempHash, hashToCrack);
+        isLongHash = TRUE;
         for(j=49999-i; j<50000; j++) {
-            if(j==49999) {
-                reduce__full_hash(tempHash, tempPassword, j);
-            }
-            else {
-                reduce_hash(tempHash, tempPassword, j);
-            }
+            reduce_hash(tempHash, tempPassword, isLongHash, j);
             passwordHashing(tempPassword, tempHash);
+            isLongHash = FALSE;
         }
-        printf("\n");
         startFlag = TRUE;
         do {
             if(startFlag) {
@@ -249,7 +250,7 @@ void crack_hash(char* fileName, char* hashToCrack) {
         strcpy(tempPassword, walker->head);
         for(i=0; i<reducIndex; i++) {
             passwordHashing(tempPassword, tempHash);
-            reduce_hash(tempHash, tempPassword, i);
+            reduce_hash(tempHash, tempPassword, FALSE, i);
         }
         printf("Password found for %64s. \n==> %8s\n", hashToCrack, tempPassword);
     }
