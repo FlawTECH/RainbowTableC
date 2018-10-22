@@ -172,7 +172,9 @@ int readFile(char* fileName, MultiLinkedList* list) {
         }
         fclose(file);
     }
-    walker->next = NULL;
+    if(counter>0) {
+        walker->next = NULL;
+    }
     return counter;
 }
 
@@ -215,6 +217,10 @@ void crack_hash(char* fileName, char* hashToCrack) {
 
     //Reading chains from file
     chainCount = readFile(fileName, &chains);
+    if(chainCount==0) {
+        fprintf(stderr, "Unable to load any hashes. Make sure the file exists and that at least one chain is present.");
+        exit(EXIT_FAILURE);
+    }
     printf("%d entries loaded. Cracking ...\n", chainCount);
 
     for(i=0; i<50000; i++) {
