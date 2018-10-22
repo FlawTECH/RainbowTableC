@@ -31,37 +31,6 @@ void passwordHashing(char* password, unsigned char* hash) {
  	sha256_final(&ctx, hash);
 }
 
-void printHex(unsigned char* data) {
-    for (int i = 0; i < 32; i++) { 
-    	printf("%02x",data[i]); 
-    }
-}
-
-void reduce__full_hash(char* hash_entier, char* reduced_hash, int indexReduc) {
-    int i, number_to_pick;
-    char hash_separe[PASSWORD_LENGTH+1];
-    unsigned int number;
-    int leftFromMax;
-   
-    for (i = 0; i < PASSWORD_LENGTH; i++) {
-        strncpy(hash_separe, hash_entier + (i * 8), 8);
-        hash_separe[PASSWORD_LENGTH] = '\0';
-        number = strtoul(hash_separe, NULL, 16);
-        leftFromMax = UINT_MAX - number;
-        
-        if (indexReduc > leftFromMax) {
-            indexReduc -= leftFromMax;
-            number = 0;
-        }
-
-        number += indexReduc;
-        number_to_pick = number % strlen(alphabet);
-        reduced_hash[i] = alphabet[number_to_pick];    
-    }
-
-    reduced_hash[PASSWORD_LENGTH] = '\0';
-}
-
 void reduce_hash(unsigned char* hash, char* reduced_hash, int isLongHash, int indexReduc) {
     char hash_entier[LENGTH_HASH+1];
     int i, number_to_pick;
@@ -190,15 +159,20 @@ void* generate_table(void* fileName) {
 
     srand(time(0));
 
-    for(k = 0; k < 5; k++) {
+    for(k = 0; k < 1; k++) {
         for (i = 0; i < FILE_BUFFER; i++) {
             randomString(head, PASSWORD_LENGTH);
             strcpy(tail, head);
-    
+            clock_t t; 
+            t = clock(); 
             for (j = 0; j < 50000; j++) {
                 passwordHashing(tail, hash);
                 reduce_hash(hash, tail, FALSE, j);
             }
+            t = clock() - t; 
+    double time_taken = ((double)t)/CLOCKS_PER_SEC; // in seconds 
+  
+    printf("reduce_hash took %f seconds to execute \n", time_taken); 
 
             snprintf(fullChain, (PASSWORD_LENGTH*2)+2, "%s:%s", head, tail);
             add(&list, fullChain);
@@ -280,8 +254,9 @@ int main(int argc, char *argv[]) {
     char* fileName;
     char hashToCrack[LENGTH_HASH+1];
     int opt, i;
+    int thread_number = 4;
     enum {GENERATE_MODE, CRACK_MODE} mode = GENERATE_MODE;
-    pthread_t threads[THREAD_NUMBER];
+    pthread_t threads[thread_number];
     clock_t begin, end;
 
     #pragma endregion
@@ -293,12 +268,12 @@ int main(int argc, char *argv[]) {
 
     //If no arguments
     if(argc == 1) {
-        fprintf(stderr, "Usage: %s [-gc] [-f TABLEFILENAME]\n", argv[0]);
+        fprintf(stderr, "Usage: %s [-gc] [-f TABLEFILENAME] [-t THREADNUMBER]\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
     //Checking all arguments
-    while((opt = getopt(argc, argv, "gc:f:")) != -1) {
+    while((opt = getopt(argc, argv, "gc:f:t:")) != -1) {
         switch(opt) {
             case 'g':
                 mode = GENERATE_MODE;
@@ -309,7 +284,7 @@ int main(int argc, char *argv[]) {
                     strcpy(hashToCrack, optarg);
                 }
                 else {
-                    fprintf(stderr, "Invalid SHA256 Hash.");
+                    fprintf(stderr, "Invalid SHA256 Hash.\n");
                     exit(EXIT_FAILURE);
                 }
                 break;
@@ -317,15 +292,25 @@ int main(int argc, char *argv[]) {
                 fileName = malloc(strlen(optarg));
                 strcpy(fileName, optarg);
                 break;
+            case 't':
+                thread_number = strtol(optarg, NULL, 10);
+                if(thread_number>8){
+                    printf("Warning: 8 Threads maximum.\n");
+                    exit(EXIT_FAILURE);
+                }else if(thread_number<0){
+                    printf("Warning: Wrong number of threads.\n");
+                    exit(EXIT_FAILURE);
+                }
+                break;
             default:
-                fprintf(stderr, "Usage: %s [-gc] [-f TABLEFILENAME]\n", argv[0]);
+                fprintf(stderr, "Usage: %s [-gc] [-f TABLEFILENAME] [-t THREADNUMBER]\n", argv[0]);
                 exit(EXIT_FAILURE); 
         }
     }
-
     /**
      * End Argument Parsing
      */
+    printf("%d",thread_number);
     #pragma endregion
 
     #pragma region Mode selection
@@ -334,7 +319,7 @@ int main(int argc, char *argv[]) {
         case GENERATE_MODE:
             begin = clock();
 
-            for (i = 0; i < THREAD_NUMBER; i++) {
+            for (i = 0; i < thread_number; i++) {
                 pthread_create(&threads[i], NULL, generate_table, (void*)fileName);
             }
 
@@ -349,13 +334,14 @@ int main(int argc, char *argv[]) {
     
     #pragma region Destructors
 
-    for (i = 0; i < THREAD_NUMBER; i++) {
+    for (i = 0; i < thread_number; i++) {
         pthread_join(threads[i], NULL);
     }
 
     end = clock();
     double time_spent = (double) (end - begin) / CLOCKS_PER_SEC;
     printf("Rainbow Table successfuly created in %f ! Enjoy ...", time_spent);
+    system("pause");
 
     fileName = NULL;
     free(fileName);

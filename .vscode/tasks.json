@@ -11,6 +11,8 @@
                 "src/*.c",
                 "lib/*.c",
                 "-g",
+                "-lpthread",
+                "-D_REENTRANT",
                 "-o", "bin/main.exe"
             ],
             "group": {
