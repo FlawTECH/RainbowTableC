@@ -8,7 +8,7 @@ const char alphabet[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012
  * n : la longeur de alphabet.e
  */
 int intN(int n) {
-    return rand() % n;
+    return (rand() + pthread_self()) % n;
 }
 
 /**
@@ -68,12 +68,12 @@ void reduce_hash(unsigned char* hash, char* reduced_hash, int isLongHash, int in
     char hash_separe[PASSWORD_LENGTH+1];
     unsigned int number;
     int leftFromMax;
+
     if(!isLongHash) {
         for (i = 0; i < LENGTH_HASH/2; i++){
             sprintf(hash_entier + i*2, "%02x", hash[i]); //Créer le hash avec l'argument "hash" que recoit la fonction
         }
-    }
-    else {
+    } else {
         strcpy(hash_entier, hash);
     }
    
@@ -142,7 +142,7 @@ void split_chain(char* chain, char* password, char* hash) {
         password[PASSWORD_LENGTH] = '\0';
     }
 
-    if(hash!=NULL) {
+    if (hash != NULL) {
         for(i=PASSWORD_LENGTH+1; i<PASSWORD_LENGTH+PASSWORD_LENGTH+1; i++) {
             hash[i-PASSWORD_LENGTH-1] = chain[i];
         }
@@ -152,7 +152,7 @@ void split_chain(char* chain, char* password, char* hash) {
 
 int readFile(char* fileName, MultiLinkedList* list) {
     FILE* file = NULL;
-    char chaine[(PASSWORD_LENGTH*2)+3];
+    char chaine[(PASSWORD_LENGTH * 2) + 3];
     file = fopen(fileName, "r");
     MultiLinkedList walker;
     int counter = 0;
@@ -160,16 +160,18 @@ int readFile(char* fileName, MultiLinkedList* list) {
     if (file != NULL) {
         while (fgets(chaine, (PASSWORD_LENGTH*2)+3, file) != NULL) { // + 3 => ":","\0" & "\n"
             counter++;
+
             if(isEmptyMultiList(*list)) {
                 *list = malloc(sizeof(Node));
                 walker = *list;               
-            }
-            else {
+            } else {
                 walker->next = malloc(sizeof(Node));
                 walker = walker->next;
             }
+
             split_chain(chaine, walker->head, walker->tail);
         }
+        
         fclose(file);
     }
     if(counter>0) {
@@ -178,7 +180,7 @@ int readFile(char* fileName, MultiLinkedList* list) {
     return counter;
 }
 
-void generate_table(char* fileName) {
+void* generate_table(void* fileName) {
     int i, j, k;
     LinkedList list = NULL;
     char head[PASSWORD_LENGTH+1];
@@ -187,21 +189,22 @@ void generate_table(char* fileName) {
     char fullChain[(PASSWORD_LENGTH*2)+2];
 
     srand(time(0));
-    for(k = 0; k<5; k++) {
+
+    for(k = 0; k < 5; k++) {
         for (i = 0; i < FILE_BUFFER; i++) {
             randomString(head, PASSWORD_LENGTH);
             strcpy(tail, head);
+    
             for (j = 0; j < 50000; j++) {
                 passwordHashing(tail, hash);
                 reduce_hash(hash, tail, FALSE, j);
             }
+
             snprintf(fullChain, (PASSWORD_LENGTH*2)+2, "%s:%s", head, tail);
             add(&list, fullChain);
         }
         writeFile(fileName, &list);
     }
-    printf("Rainbow Table successfuly created ! Enjoy ...");
-    system("pause");
 }
 
 void crack_hash(char* fileName, char* hashToCrack) {
@@ -226,41 +229,42 @@ void crack_hash(char* fileName, char* hashToCrack) {
     for(i=0; i<50000; i++) {
         strcpy(tempHash, hashToCrack);
         isLongHash = TRUE;
+        
         for(j=49999-i; j<50000; j++) {
             reduce_hash(tempHash, tempPassword, isLongHash, j);
             passwordHashing(tempPassword, tempHash);
             isLongHash = FALSE;
         }
+        
         startFlag = TRUE;
+
         do {
             if(startFlag) {
                 walker = chains;
                 startFlag = FALSE;
-            }
-            else {
+            } else {
                 walker = walker->next;
-            }
-            if(strcmp(tempPassword, walker->tail) == 0) {
+            } if (strcmp(tempPassword, walker->tail) == 0) {
                 found = TRUE;
                 reducIndex = 49999 - i;
                 i = 50000;
                 j = 50000;
                 break;
             }
-        }
-        while(walker->next != NULL);
+        } while(walker->next != NULL);
     }
 
-    if(found) {
+    if (found) {
         printf("Hash found ! Computing plaintext ...\n");
         strcpy(tempPassword, walker->head);
-        for(i=0; i<reducIndex; i++) {
+
+        for (i = 0; i < reducIndex; i++) {
             passwordHashing(tempPassword, tempHash);
             reduce_hash(tempHash, tempPassword, FALSE, i);
         }
+
         printf("Password found for %64s. \n==> %8s\n", hashToCrack, tempPassword);
-    }
-    else {
+    } else {
         printf("Password not found, generate more hashes.");
     }
     system("pause");
@@ -275,8 +279,10 @@ int main(int argc, char *argv[]) {
 
     char* fileName;
     char hashToCrack[LENGTH_HASH+1];
-    int opt;
+    int opt, i;
     enum {GENERATE_MODE, CRACK_MODE} mode = GENERATE_MODE;
+    pthread_t threads[THREAD_NUMBER];
+    clock_t begin, end;
 
     #pragma endregion
 
@@ -326,7 +332,13 @@ int main(int argc, char *argv[]) {
     
     switch(mode) {
         case GENERATE_MODE:
-            generate_table(fileName);           break;
+            begin = clock();
+
+            for (i = 0; i < THREAD_NUMBER; i++) {
+                pthread_create(&threads[i], NULL, generate_table, (void*)fileName);
+            }
+
+            break;
         case CRACK_MODE:
             crack_hash(fileName, hashToCrack);  break;
         default:
@@ -336,6 +348,14 @@ int main(int argc, char *argv[]) {
     #pragma endregion
     
     #pragma region Destructors
+
+    for (i = 0; i < THREAD_NUMBER; i++) {
+        pthread_join(threads[i], NULL);
+    }
+
+    end = clock();
+    double time_spent = (double) (end - begin) / CLOCKS_PER_SEC;
+    printf("Rainbow Table successfuly created in %f ! Enjoy ...", time_spent);
 
     fileName = NULL;
     free(fileName);
