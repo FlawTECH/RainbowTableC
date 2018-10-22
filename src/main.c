@@ -158,27 +158,19 @@ void* generate_table(void* fileName) {
     char fullChain[(PASSWORD_LENGTH*2)+2];
 
     srand(time(0));
-
-    for(k = 0; k < 1; k++) {
+    
         for (i = 0; i < FILE_BUFFER; i++) {
+            printf("Thread n %d: %d/%d pass generated\n",pthread_self(),i+1,FILE_BUFFER);
             randomString(head, PASSWORD_LENGTH);
             strcpy(tail, head);
-            clock_t t; 
-            t = clock(); 
             for (j = 0; j < 50000; j++) {
                 passwordHashing(tail, hash);
                 reduce_hash(hash, tail, FALSE, j);
             }
-            t = clock() - t; 
-    double time_taken = ((double)t)/CLOCKS_PER_SEC; // in seconds 
-  
-    printf("reduce_hash took %f seconds to execute \n", time_taken); 
-
             snprintf(fullChain, (PASSWORD_LENGTH*2)+2, "%s:%s", head, tail);
             add(&list, fullChain);
         }
         writeFile(fileName, &list);
-    }
 }
 
 void crack_hash(char* fileName, char* hashToCrack) {
@@ -253,8 +245,7 @@ int main(int argc, char *argv[]) {
 
     char* fileName;
     char hashToCrack[LENGTH_HASH+1];
-    int opt, i;
-    int thread_number = 4;
+    int opt, i, user_number, thread_number = 4;
     enum {GENERATE_MODE, CRACK_MODE} mode = GENERATE_MODE;
     pthread_t threads[thread_number];
     clock_t begin, end;
@@ -268,14 +259,15 @@ int main(int argc, char *argv[]) {
 
     //If no arguments
     if(argc == 1) {
-        fprintf(stderr, "Usage: %s [-gc] [-f TABLEFILENAME] [-t THREADNUMBER]\n", argv[0]);
+        fprintf(stderr, "Usage: %s [-gc] [-f TABLEFILENAME] [-n NB_PASSTOGENERATE] [-t THREADNUMBER]\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
     //Checking all arguments
-    while((opt = getopt(argc, argv, "gc:f:t:")) != -1) {
+    while((opt = getopt(argc, argv, "gc:f:n:t:")) != -1) {
         switch(opt) {
             case 'g':
+                printf("Generate mode selected.\n");
                 mode = GENERATE_MODE;
                 break;
             case 'c':
@@ -292,6 +284,13 @@ int main(int argc, char *argv[]) {
                 fileName = malloc(strlen(optarg));
                 strcpy(fileName, optarg);
                 break;
+            case 'n':
+                user_number = strtol(optarg, NULL, 10);
+                if(user_number<=0){
+                    printf("Warning: Wrong number of passwords to generate.\n");
+                    exit(EXIT_FAILURE);
+                }
+                break;
             case 't':
                 thread_number = strtol(optarg, NULL, 10);
                 if(thread_number>8){
@@ -303,14 +302,13 @@ int main(int argc, char *argv[]) {
                 }
                 break;
             default:
-                fprintf(stderr, "Usage: %s [-gc] [-f TABLEFILENAME] [-t THREADNUMBER]\n", argv[0]);
+                fprintf(stderr, "Usage: %s [-gc] [-f TABLEFILENAME] [-n NB_PASSTOGENERATE] [-t THREADNUMBER]\n", argv[0]);
                 exit(EXIT_FAILURE); 
         }
     }
     /**
      * End Argument Parsing
      */
-    printf("%d",thread_number);
     #pragma endregion
 
     #pragma region Mode selection
@@ -340,7 +338,7 @@ int main(int argc, char *argv[]) {
 
     end = clock();
     double time_spent = (double) (end - begin) / CLOCKS_PER_SEC;
-    printf("Rainbow Table successfuly created in %f ! Enjoy ...", time_spent);
+    printf("Rainbow Table successfuly created in %f ! Enjoy ...\n", time_spent);
     system("pause");
 
     fileName = NULL;

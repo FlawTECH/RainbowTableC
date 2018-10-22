@@ -11,7 +11,7 @@
 #define FALSE 0
 #define PASSWORD_LENGTH 8
 #define LENGTH_HASH 64
-#define FILE_BUFFER 12
+#define FILE_BUFFER 10
 
 typedef struct Node {
 	char 	value[(PASSWORD_LENGTH*2)+2];
