@@ -3,14 +3,6 @@
 /* alphanumeric: [a-z0-9] */
 const char alphabet[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
-//Shared resources between cracking threads
-int global_reduction_index = 0;
-MultiLinkedList chains = NULL;
-int chainCount = 0;
-
-//Mutex for shared resources
-pthread_mutex_t mutex;
-
 /**
  * return un entier [0, n]. 
  * n : la longeur de alphabet.e
@@ -181,9 +173,6 @@ void* generate_table(void* arguments) {
             for (j = 0; j < 50000; j++) {
                 passwordHashing(tail, hash);
                 reduce_hash(hash, tail, FALSE, j);
-                if(j==49995) {
-                    printf("\n: %s", tail);
-                }
             }
             snprintf(fullChain, (PASSWORD_LENGTH*2)+2, "%s:%s", head, tail);
             add(&list, fullChain);
@@ -191,19 +180,20 @@ void* generate_table(void* arguments) {
         writeFile(args->fileName, &list);
 }
 
-void* crack_hash(void* hashToCrack) {
+void* crack_hash(void* arguments) {
+
+    CrackHashArgs *args = arguments;
+
+    int chainCount;
     int i, j, reducIndex;
     int found = FALSE;
     int startFlag = TRUE;
     int isLongHash = TRUE;
-    int progress;
-
-   
     char tempHash[LENGTH_HASH+1];
     char tempPassword[PASSWORD_LENGTH+1];
+    MultiLinkedList chains = NULL;
     MultiLinkedList walker;
 
-<<<<<<< HEAD
     //Reading chains from file
     chainCount = readFile(args->fileName, &chains);
     if(chainCount==0) {
@@ -211,27 +201,9 @@ void* crack_hash(void* hashToCrack) {
         exit(EXIT_FAILURE);
     }
     printf("[*] %d entries loaded. Cracking ...\n", chainCount);
-=======
-    char tmp[LENGTH_HASH+1] = "4eb0305b91e1d04f93edd5c7b67489f9a513e2b7634fd79c02b6baf6ab8756e2";
-    // pthread_mutex_lock(&mutex);
-    char* startHash;
-    startHash = malloc(sizeof(LENGTH_HASH+1));
-    strcpy(startHash, tmp);
-    // pthread_mutex_unlock(&mutex);
-
-    // char startHash[LENGTH_HASH+1] = "4eb0305b91e1d04f93edd5c7b67489f9a513e2b7634fd79c02b6baf6ab8756e2";
-    printf("YES");
-
-
-    printf("\n%s", startHash);
->>>>>>> refs/remotes/origin/master
 
     for(i=0; i<50000; i++) {
-        pthread_mutex_lock(&mutex);
-        i = global_reduction_index;
-        global_reduction_index++;
-        pthread_mutex_unlock(&mutex);
-        strcpy(tempHash, startHash);
+        strcpy(tempHash, args->hashToCrack);
         isLongHash = TRUE;
         
         for(j=49999-i; j<50000; j++) {
@@ -244,9 +216,7 @@ void* crack_hash(void* hashToCrack) {
 
         do {
             if(startFlag) {
-                pthread_mutex_lock(&mutex);
                 walker = chains;
-                pthread_mutex_unlock(&mutex);
                 startFlag = FALSE;
             } else {
                 walker = walker->next;
@@ -258,10 +228,6 @@ void* crack_hash(void* hashToCrack) {
                 break;
             }
         } while(walker->next != NULL);
-        if(i%500==0) {
-            progress = (i/49999.)*100;
-            printf("\nProgress: %d%%", progress);
-        }
     }
 
     if (found) {
@@ -273,16 +239,10 @@ void* crack_hash(void* hashToCrack) {
             reduce_hash(tempHash, tempPassword, FALSE, i);
         }
 
-<<<<<<< HEAD
         printf("[*] Password found for %64s. \n==> %8s\n", args->hashToCrack, tempPassword);
-=======
-        printf("Password found for %64s. \n==> %8s\n", startHash, tempPassword);
->>>>>>> refs/remotes/origin/master
     } else {
         printf("[*] Password not found, generate more hashes.");
     }
-    startHash = NULL;
-    free(startHash);
     system("pause");
 }
 
@@ -300,13 +260,10 @@ int main(int argc, char *argv[]) {
     pthread_t threads[thread_number];
     clock_t begin, end;
 
-<<<<<<< HEAD
     CrackHashArgs* crackHashArgs;
     GenerateArgs* generateArgs;
 
 
-=======
->>>>>>> refs/remotes/origin/master
     #pragma endregion
 
     #pragma region Argument Parsing
@@ -371,12 +328,6 @@ int main(int argc, char *argv[]) {
 
     #pragma region Mode selection
     
-    if (pthread_mutex_init(&mutex, NULL) != 0)
-    {
-        printf("\n mutex init failed\n");
-        return 1;
-    }
-
     switch(mode) {
         case GENERATE_MODE:
             begin = clock();
@@ -394,15 +345,12 @@ int main(int argc, char *argv[]) {
 
             break;
         case CRACK_MODE:
-            //Reading chains from file
-            chainCount = readFile(fileName, &chains);
-            if(chainCount==0) {
-                fprintf(stderr, "Unable to load any hashes. Make sure the file exists and that at least one chain is present.");
-                exit(EXIT_FAILURE);
-            }
-            printf("%d entries loaded. Cracking ...\n", chainCount);
+            crackHashArgs = malloc(sizeof(CrackHashArgs));
+            crackHashArgs->fileName = malloc(sizeof(fileName));
+            strcpy(crackHashArgs->fileName, fileName);
+            strcpy(crackHashArgs->hashToCrack, hashToCrack);
             for (i = 0; i < thread_number; i++) {
-                pthread_create(&threads[i], NULL, crack_hash, NULL);
+                pthread_create(&threads[i], NULL, crack_hash, (void*)crackHashArgs);
             }
             
             break;
