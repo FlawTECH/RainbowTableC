@@ -173,7 +173,10 @@ void* generate_table(void* fileName) {
         writeFile(fileName, &list);
 }
 
-void crack_hash(char* fileName, char* hashToCrack) {
+void* crack_hash(void* arguments) {
+
+    CrackHashArgs *args = arguments;
+
     int chainCount;
     int i, j, reducIndex;
     int found = FALSE;
@@ -185,7 +188,7 @@ void crack_hash(char* fileName, char* hashToCrack) {
     MultiLinkedList walker;
 
     //Reading chains from file
-    chainCount = readFile(fileName, &chains);
+    chainCount = readFile(args->fileName, &chains);
     if(chainCount==0) {
         fprintf(stderr, "Unable to load any hashes. Make sure the file exists and that at least one chain is present.");
         exit(EXIT_FAILURE);
@@ -193,7 +196,7 @@ void crack_hash(char* fileName, char* hashToCrack) {
     printf("%d entries loaded. Cracking ...\n", chainCount);
 
     for(i=0; i<50000; i++) {
-        strcpy(tempHash, hashToCrack);
+        strcpy(tempHash, args->hashToCrack);
         isLongHash = TRUE;
         
         for(j=49999-i; j<50000; j++) {
@@ -229,7 +232,7 @@ void crack_hash(char* fileName, char* hashToCrack) {
             reduce_hash(tempHash, tempPassword, FALSE, i);
         }
 
-        printf("Password found for %64s. \n==> %8s\n", hashToCrack, tempPassword);
+        printf("Password found for %64s. \n==> %8s\n", args->hashToCrack, tempPassword);
     } else {
         printf("Password not found, generate more hashes.");
     }
@@ -249,6 +252,9 @@ int main(int argc, char *argv[]) {
     enum {GENERATE_MODE, CRACK_MODE} mode = GENERATE_MODE;
     pthread_t threads[thread_number];
     clock_t begin, end;
+
+    CrackHashArgs* crackHashArgs;
+
 
     #pragma endregion
 
@@ -323,7 +329,15 @@ int main(int argc, char *argv[]) {
 
             break;
         case CRACK_MODE:
-            crack_hash(fileName, hashToCrack);  break;
+            crackHashArgs = malloc(sizeof(CrackHashArgs));
+            crackHashArgs->fileName = malloc(sizeof(fileName));
+            strcpy(crackHashArgs->fileName, fileName);
+            strcpy(crackHashArgs->hashToCrack, hashToCrack);
+            for (i = 0; i < thread_number; i++) {
+                pthread_create(&threads[i], NULL, crack_hash, (void*)crackHashArgs);
+            }
+            
+            break;
         default:
             fprintf(stderr, "The program encountered an error and must close. Please try again.");
             exit(EXIT_FAILURE);
