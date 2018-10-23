@@ -10,19 +10,11 @@
             "request": "launch",
             "program": "${workspaceFolder}/bin/main.exe",
             "args": [
-<<<<<<< HEAD
-                //"-c", "6f2148f83123508191aefa7612f321fb79b83f3066bb4b635aef582565280864",
-                 "-g",
-                "-f", "bin/password.txt",
-                "-n", "10",
-                "-t", "8"
-=======
-                "-c", "4eb0305b91e1d04f93edd5c7b67489f9a513e2b7634fd79c02b6baf6ab8756e2",
+                "-c", "6f2148f83123508191aefa7612f321fb79b83f3066bb4b635aef582565280864",
                 // "-g",
                 "-f", "bin/password.txt",
-                "-n", "20",
+                "-n", "10",
                 "-t", "1"
->>>>>>> refs/remotes/origin/master
 
             ],
             "stopAtEntry": false,

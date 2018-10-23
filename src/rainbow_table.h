@@ -23,11 +23,6 @@ typedef struct MultiNode {
 	struct 	MultiNode* next;
 } MultiNode;
 
-typedef struct crack_hash_args {
-	char*	fileName;
-	char	hashToCrack[LENGTH_HASH+1];
-} CrackHashArgs;
-
 typedef struct generate_args {
 	char* fileName;
 	int user_number;
