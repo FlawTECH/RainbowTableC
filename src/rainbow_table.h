@@ -25,8 +25,8 @@ typedef struct MultiNode {
 
 typedef struct generate_args {
 	char* fileName;
-	int user_number;
-	int number;
+	int rainbow_size;
+	int generated_count;
 	int thread_count;
 } GenerateArgs;
 

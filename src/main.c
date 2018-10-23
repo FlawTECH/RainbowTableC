@@ -7,6 +7,7 @@ const char alphabet[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012
 int global_reduction_index = 0;
 MultiLinkedList chains = NULL;
 int chainCount = 0;
+int global_hash_iscracked = FALSE;
 
 //Mutex for shared resources
 pthread_mutex_t mutex;
@@ -159,7 +160,7 @@ int readFile(char* fileName, MultiLinkedList* list) {
 
 void* generate_table(void* arguments) {
 
-    GenerateArgs *args = arguments;
+    GenerateArgs *args = (GenerateArgs*)arguments;
 
     int i, j, k;
     LinkedList list = NULL;
@@ -170,17 +171,20 @@ void* generate_table(void* arguments) {
 
     srand(time(0));
     
-        for (i = 0; i < args->user_number; i++) {
-            args->number++; 
-            if((args->number%(args->user_number*8/10)) == 0)
+        for (i = 0; i < args->rainbow_size; i++) {
+            args->generated_count++;
+            if((args->generated_count%(args->rainbow_size*8/10)) == 0)
             {
-                printf("[*] Pass generated:  %d/%d -> %d%%\n",args->number,args->user_number*args->thread_count,((args->number)*100)/(args->user_number*args->thread_count));
+                printf("[*] Pass generated:  %d/%d -> %d%%\n",args->generated_count,args->rainbow_size*args->thread_count,((args->generated_count)*100)/(args->rainbow_size*args->thread_count));
             }     
             randomString(head, PASSWORD_LENGTH);
             strcpy(tail, head);
             for (j = 0; j < 50000; j++) {
                 passwordHashing(tail, hash);
                 reduce_hash(hash, tail, FALSE, j);
+                if(j==48000) {
+                    printf("\n%s", tail);
+                }
             }
             snprintf(fullChain, (PASSWORD_LENGTH*2)+2, "%s:%s", head, tail);
             add(&list, fullChain);
@@ -191,34 +195,30 @@ void* generate_table(void* arguments) {
 void* crack_hash(void* hashToCrack) {
 
     int i, j, reducIndex;
-    int found = FALSE;
     int startFlag = TRUE;
     int isLongHash = TRUE;
+    int waitToKill = FALSE;
     int progress;
 
-   
+    char* startHash;   
     char tempHash[LENGTH_HASH+1];
     char tempPassword[PASSWORD_LENGTH+1];
     MultiLinkedList walker;
-
-    char tmp[LENGTH_HASH+1] = "4eb0305b91e1d04f93edd5c7b67489f9a513e2b7634fd79c02b6baf6ab8756e2";
-    // pthread_mutex_lock(&mutex);
-    char* startHash;
-    startHash = malloc(sizeof(LENGTH_HASH+1));
-    strcpy(startHash, tmp);
-    // pthread_mutex_unlock(&mutex);
-
-    // char startHash[LENGTH_HASH+1] = "4eb0305b91e1d04f93edd5c7b67489f9a513e2b7634fd79c02b6baf6ab8756e2";
-    printf("YES");
-
-
-    printf("\n%s", startHash);
+    
+    startHash = malloc(LENGTH_HASH+1);
+    pthread_mutex_lock(&mutex);
+    strcpy(startHash, hashToCrack);
+    pthread_mutex_unlock(&mutex);
 
     for(i=0; i<50000; i++) {
         pthread_mutex_lock(&mutex);
+        waitToKill = global_hash_iscracked;
         i = global_reduction_index;
         global_reduction_index++;
         pthread_mutex_unlock(&mutex);
+        if(waitToKill) {
+            pthread_exit(NULL);
+        }
         strcpy(tempHash, startHash);
         isLongHash = TRUE;
         
@@ -234,12 +234,18 @@ void* crack_hash(void* hashToCrack) {
             if(startFlag) {
                 pthread_mutex_lock(&mutex);
                 walker = chains;
+                waitToKill = global_hash_iscracked;
                 pthread_mutex_unlock(&mutex);
+                if(waitToKill) {
+                    pthread_exit(NULL);
+                }
                 startFlag = FALSE;
             } else {
                 walker = walker->next;
             } if (strcmp(tempPassword, walker->tail) == 0) {
-                found = TRUE;
+                pthread_mutex_lock(&mutex);
+                global_hash_iscracked = TRUE;
+                pthread_mutex_unlock(&mutex);
                 reducIndex = 49999 - i;
                 i = 50000;
                 j = 50000;
@@ -252,7 +258,8 @@ void* crack_hash(void* hashToCrack) {
         }
     }
 
-    if (found) {
+    pthread_mutex_lock(&mutex);
+    if (global_hash_iscracked) {
         printf("Hash found ! Computing plaintext ...\n");
         strcpy(tempPassword, walker->head);
 
@@ -262,12 +269,13 @@ void* crack_hash(void* hashToCrack) {
         }
 
         printf("Password found for %64s. \n==> %8s\n", startHash, tempPassword);
+        system("pause");
     } else {
         printf("Password not found, generate more hashes.");
     }
+    pthread_mutex_unlock(&mutex);
     startHash = NULL;
     free(startHash);
-    system("pause");
 }
 
 void sort_alphabetically(LinkedList* list) {
@@ -279,11 +287,10 @@ int main(int argc, char *argv[]) {
 
     char* fileName;
     char hashToCrack[LENGTH_HASH+1];
-    int opt, i, user_number = 1000000, thread_number = 4;
+    int opt, i, rainbow_size = 1000000, thread_number = 4;
     enum {GENERATE_MODE, CRACK_MODE} mode = GENERATE_MODE;
-    pthread_t threads[thread_number];
     clock_t begin, end;
-    
+
     GenerateArgs* generateArgs;
 
 
@@ -323,8 +330,8 @@ int main(int argc, char *argv[]) {
                 strcpy(fileName, optarg);
                 break;
             case 'n':
-                user_number = strtol(optarg, NULL, 10);
-                if(user_number<=0){
+                rainbow_size = strtol(optarg, NULL, 10);
+                if(rainbow_size<=0){
                     printf("[*] Warning: Wrong number of passwords to generate.\n");
                     exit(EXIT_FAILURE);
                 }
@@ -344,6 +351,9 @@ int main(int argc, char *argv[]) {
                 exit(EXIT_FAILURE); 
         }
     }
+
+    pthread_t threads[thread_number];
+
     /**
      * End Argument Parsing
      */
@@ -364,8 +374,8 @@ int main(int argc, char *argv[]) {
             generateArgs = malloc(sizeof(GenerateArgs));            
             generateArgs->fileName = malloc(sizeof(fileName));            
             strcpy(generateArgs->fileName, fileName);            
-            generateArgs->user_number = user_number;
-            generateArgs->number = 0;
+            generateArgs->rainbow_size = rainbow_size;
+            generateArgs->generated_count = 0;
             generateArgs->thread_count = thread_number;
 
             for (i = 0; i < thread_number; i++) {
@@ -382,7 +392,7 @@ int main(int argc, char *argv[]) {
             }
             printf("%d entries loaded. Cracking ...\n", chainCount);
             for (i = 0; i < thread_number; i++) {
-                pthread_create(&threads[i], NULL, crack_hash, NULL);
+                pthread_create(&threads[i], NULL, crack_hash, (void*)hashToCrack);
             }
             
             break;
@@ -400,7 +410,7 @@ int main(int argc, char *argv[]) {
 
     end = clock();
     double time_spent = (double) (end - begin) / CLOCKS_PER_SEC;
-    printf("\n[*] Rainbow Table successfuly created in %.2f secondes! %d Threads used for %d pass generated. \n\n", time_spent, thread_number, user_number*thread_number);
+    printf("\n[*] Rainbow Table successfuly created in %.2f secondes! %d Threads used for %d pass generated. \n\n", time_spent, thread_number, rainbow_size*thread_number);
     system("pause");
 
     generateArgs = NULL;
