@@ -160,7 +160,7 @@ void* generate_table(void* fileName) {
     srand(time(0));
     
         for (i = 0; i < FILE_BUFFER; i++) {
-            printf("Thread n %d: %d/%d pass generated\n",pthread_self(),i+1,FILE_BUFFER);
+            printf("Thread n %d: %d%% of pass generated\n",pthread_self(),((i+1)*100)/FILE_BUFFER);
             randomString(head, PASSWORD_LENGTH);
             strcpy(tail, head);
             for (j = 0; j < 50000; j++) {
@@ -322,7 +322,7 @@ int main(int argc, char *argv[]) {
     switch(mode) {
         case GENERATE_MODE:
             begin = clock();
-
+            printf("Number of threads: %d\n",thread_number);
             for (i = 0; i < thread_number; i++) {
                 pthread_create(&threads[i], NULL, generate_table, (void*)fileName);
             }
@@ -352,7 +352,7 @@ int main(int argc, char *argv[]) {
 
     end = clock();
     double time_spent = (double) (end - begin) / CLOCKS_PER_SEC;
-    printf("Rainbow Table successfuly created in %f ! Enjoy ...\n", time_spent);
+    printf("Rainbow Table successfuly created in %f ! %d Threads used for %d pass generated! \n", time_spent, thread_number, FILE_BUFFER*thread_number);
     system("pause");
 
     fileName = NULL;
