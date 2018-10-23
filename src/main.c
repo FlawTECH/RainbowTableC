@@ -13,8 +13,9 @@ int global_hash_iscracked = FALSE;
 pthread_mutex_t mutex;
 
 /**
- * return un entier [0, n]. 
- * n : la longeur de alphabet.e
+ * Computes a random number using a pseudo random generator
+ * Returns an integer between [0,n]. 
+ * n : Size of the character table
  */
 int intN(int n) {
     return (rand() + pthread_self()) % n;
@@ -33,6 +34,9 @@ void randomString(char* output, int length) {
     output[length] = '\0';
 }
 
+/**
+ * Hashes the given password using the SHA256 algorithm
+ */ 
 void passwordHashing(char* password, unsigned char* hash) {
     SHA256_CTX ctx;
 	sha256_init(&ctx);
@@ -40,6 +44,9 @@ void passwordHashing(char* password, unsigned char* hash) {
  	sha256_final(&ctx, hash);
 }
 
+/**
+ * Reduction function : creates a 8 char long password from a 64 char long hash
+ */ 
 void reduce_hash(unsigned char* hash, char* reduced_hash, int isLongHash, int indexReduc) {
     char hash_entier[LENGTH_HASH+1];
     int i, number_to_pick;
@@ -74,6 +81,9 @@ void reduce_hash(unsigned char* hash, char* reduced_hash, int isLongHash, int in
     reduced_hash[PASSWORD_LENGTH] = '\0';
 }
 
+/**
+ * Writes a series of heads and tails inside the given file
+ */ 
 void writeFile(char* fileName, LinkedList* baseList) {
     FILE* file;
     file = fopen(fileName, "a+");
@@ -101,6 +111,9 @@ void writeFile(char* fileName, LinkedList* baseList) {
     fclose(file);  
 }
 
+/**
+ * Converts a 32 char long hash to a 64 char long hash (for readability purposes)
+ */ 
 void hash2string(unsigned char* hash, int length, char* string) {
     for(int i = 0; i<length; i++) {
         sprintf(string + i*2, "%02x", hash[i]); //Créer le hash avec l'argument "hash" que recoit la fonction
@@ -128,6 +141,9 @@ void split_chain(char* chain, char* password, char* hash) {
     }
 }
 
+/**
+ * Parses a rainbow table and copies the chains in a linked list
+ */ 
 int readFile(char* fileName, MultiLinkedList* list) {
     FILE* file = NULL;
     char chaine[(PASSWORD_LENGTH * 2) + 3];
@@ -158,6 +174,9 @@ int readFile(char* fileName, MultiLinkedList* list) {
     return counter;
 }
 
+/**
+ * Generates the rainbow table
+ */ 
 void* generate_table(void* arguments) {
 
     GenerateArgs *args = (GenerateArgs*)arguments;
@@ -192,25 +211,32 @@ void* generate_table(void* arguments) {
         writeFile(args->fileName, &list);
 }
 
+/**
+ * Cracks a given hash against the rainbow table
+ */ 
 void* crack_hash(void* hashToCrack) {
 
+    //Declarations / Instanciations
     int i, j, reducIndex;
-    int startFlag = TRUE;
-    int isLongHash = TRUE;
-    int waitToKill = FALSE;
+    int startFlag       = TRUE;
+    int isLongHash      = TRUE;
+    int waitToKill      = FALSE;
     int progress;
-
-    char* startHash;   
-    char tempHash[LENGTH_HASH+1];
-    char tempPassword[PASSWORD_LENGTH+1];
-    MultiLinkedList walker;
+    char*               startHash;   
+    char                tempHash[LENGTH_HASH+1];
+    char                tempPassword[PASSWORD_LENGTH+1];
+    MultiLinkedList     walker;
     
+    //Copying the arguments to avoid unwanted memory access between threads
     startHash = malloc(LENGTH_HASH+1);
     pthread_mutex_lock(&mutex);
     strcpy(startHash, hashToCrack);
     pthread_mutex_unlock(&mutex);
 
+    //We want it to iterate 50k times max
     for(i=0; i<50000; i++) {
+        //Checking if another thread found the password
+        //Also reporting progress
         pthread_mutex_lock(&mutex);
         waitToKill = global_hash_iscracked;
         i = global_reduction_index;
@@ -222,14 +248,18 @@ void* crack_hash(void* hashToCrack) {
         strcpy(tempHash, startHash);
         isLongHash = TRUE;
         
+        //We always start from the last reduction function
+        //Then, we go back once after each iteration
         for(j=49999-i; j<50000; j++) {
             reduce_hash(tempHash, tempPassword, isLongHash, j);
             passwordHashing(tempPassword, tempHash);
             isLongHash = FALSE;
         }
         
+        //Flag for reallocation of the linked list walker
         startFlag = TRUE;
 
+        //Checking the computed password with the tails
         do {
             if(startFlag) {
                 pthread_mutex_lock(&mutex);
@@ -252,12 +282,14 @@ void* crack_hash(void* hashToCrack) {
                 break;
             }
         } while(walker->next != NULL);
+        //Reporting progress
         if(i%500==0) {
             progress = (i/49999.)*100;
             printf("\nProgress: %d%%", progress);
         }
     }
 
+    //Success or failure of thread
     pthread_mutex_lock(&mutex);
     if (global_hash_iscracked) {
         printf("Hash found ! Computing plaintext ...\n");
@@ -274,14 +306,15 @@ void* crack_hash(void* hashToCrack) {
         printf("Password not found, generate more hashes.");
     }
     pthread_mutex_unlock(&mutex);
+
+    //Destructors
     startHash = NULL;
     free(startHash);
 }
 
-void sort_alphabetically(LinkedList* list) {
-    
-}
-
+/**
+ * Entry point
+ */ 
 int main(int argc, char *argv[]) {
 	#pragma region Declarations
 
