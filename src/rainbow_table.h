@@ -11,7 +11,6 @@
 #define FALSE 0
 #define PASSWORD_LENGTH 8
 #define LENGTH_HASH 64
-#define FILE_BUFFER 5
 
 typedef struct Node {
 	char 	value[(PASSWORD_LENGTH*2)+2];
@@ -28,6 +27,13 @@ typedef struct crack_hash_args {
 	char*	fileName;
 	char	hashToCrack[LENGTH_HASH+1];
 } CrackHashArgs;
+
+typedef struct generate_args {
+	char* fileName;
+	int user_number;
+	int number;
+	int thread_count;
+} GenerateArgs;
 
 typedef Node* 		LinkedList;
 typedef MultiNode* 	MultiLinkedList;

@@ -149,7 +149,10 @@ int readFile(char* fileName, MultiLinkedList* list) {
     return counter;
 }
 
-void* generate_table(void* fileName) {
+void* generate_table(void* arguments) {
+
+    GenerateArgs *args = arguments;
+
     int i, j, k;
     LinkedList list = NULL;
     char head[PASSWORD_LENGTH+1];
@@ -159,8 +162,12 @@ void* generate_table(void* fileName) {
 
     srand(time(0));
     
-        for (i = 0; i < FILE_BUFFER; i++) {
-            printf("Thread n %d: %d%% of pass generated\n",pthread_self(),((i+1)*100)/FILE_BUFFER);
+        for (i = 0; i < args->user_number; i++) {
+            args->number++; 
+            if((args->number%(args->user_number*8/10)) == 0)
+            {
+                printf("[*] Pass generated:  %d/%d -> %d%%\n",args->number,args->user_number*args->thread_count,((args->number)*100)/(args->user_number*args->thread_count));
+            }     
             randomString(head, PASSWORD_LENGTH);
             strcpy(tail, head);
             for (j = 0; j < 50000; j++) {
@@ -170,7 +177,7 @@ void* generate_table(void* fileName) {
             snprintf(fullChain, (PASSWORD_LENGTH*2)+2, "%s:%s", head, tail);
             add(&list, fullChain);
         }
-        writeFile(fileName, &list);
+        writeFile(args->fileName, &list);
 }
 
 void* crack_hash(void* arguments) {
@@ -190,10 +197,10 @@ void* crack_hash(void* arguments) {
     //Reading chains from file
     chainCount = readFile(args->fileName, &chains);
     if(chainCount==0) {
-        fprintf(stderr, "Unable to load any hashes. Make sure the file exists and that at least one chain is present.");
+        fprintf(stderr, "[*] Unable to load any hashes. Make sure the file exists and that at least one chain is present.");
         exit(EXIT_FAILURE);
     }
-    printf("%d entries loaded. Cracking ...\n", chainCount);
+    printf("[*] %d entries loaded. Cracking ...\n", chainCount);
 
     for(i=0; i<50000; i++) {
         strcpy(tempHash, args->hashToCrack);
@@ -224,7 +231,7 @@ void* crack_hash(void* arguments) {
     }
 
     if (found) {
-        printf("Hash found ! Computing plaintext ...\n");
+        printf("[*] Hash found ! Computing plaintext ...\n");
         strcpy(tempPassword, walker->head);
 
         for (i = 0; i < reducIndex; i++) {
@@ -232,9 +239,9 @@ void* crack_hash(void* arguments) {
             reduce_hash(tempHash, tempPassword, FALSE, i);
         }
 
-        printf("Password found for %64s. \n==> %8s\n", args->hashToCrack, tempPassword);
+        printf("[*] Password found for %64s. \n==> %8s\n", args->hashToCrack, tempPassword);
     } else {
-        printf("Password not found, generate more hashes.");
+        printf("[*] Password not found, generate more hashes.");
     }
     system("pause");
 }
@@ -248,12 +255,13 @@ int main(int argc, char *argv[]) {
 
     char* fileName;
     char hashToCrack[LENGTH_HASH+1];
-    int opt, i, user_number, thread_number = 4;
+    int opt, i, user_number = 1000000, thread_number = 4;
     enum {GENERATE_MODE, CRACK_MODE} mode = GENERATE_MODE;
     pthread_t threads[thread_number];
     clock_t begin, end;
 
     CrackHashArgs* crackHashArgs;
+    GenerateArgs* generateArgs;
 
 
     #pragma endregion
@@ -265,7 +273,7 @@ int main(int argc, char *argv[]) {
 
     //If no arguments
     if(argc == 1) {
-        fprintf(stderr, "Usage: %s [-gc] [-f TABLEFILENAME] [-n NB_PASSTOGENERATE] [-t THREADNUMBER]\n", argv[0]);
+        fprintf(stderr, "Usage: %s [-gc] [-f TABLE_FILENAME] [-n PASS_COUNT_PER_THREAD] [-t THREAD_COUNT]\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
@@ -273,16 +281,17 @@ int main(int argc, char *argv[]) {
     while((opt = getopt(argc, argv, "gc:f:n:t:")) != -1) {
         switch(opt) {
             case 'g':
-                printf("Generate mode selected.\n");
+                printf("[*] Generate mode selected.\n");
                 mode = GENERATE_MODE;
                 break;
             case 'c':
+                printf("[*] Crack mode selected.\n");
                 mode = CRACK_MODE;
                 if(strlen(optarg) == LENGTH_HASH) {
                     strcpy(hashToCrack, optarg);
                 }
                 else {
-                    fprintf(stderr, "Invalid SHA256 Hash.\n");
+                    fprintf(stderr, "[*] Invalid SHA256 Hash.\n");
                     exit(EXIT_FAILURE);
                 }
                 break;
@@ -293,22 +302,22 @@ int main(int argc, char *argv[]) {
             case 'n':
                 user_number = strtol(optarg, NULL, 10);
                 if(user_number<=0){
-                    printf("Warning: Wrong number of passwords to generate.\n");
+                    printf("[*] Warning: Wrong number of passwords to generate.\n");
                     exit(EXIT_FAILURE);
                 }
                 break;
             case 't':
                 thread_number = strtol(optarg, NULL, 10);
                 if(thread_number>8){
-                    printf("Warning: 8 Threads maximum.\n");
+                    printf("[*] Warning: 8 Threads maximum.\n");
                     exit(EXIT_FAILURE);
                 }else if(thread_number<0){
-                    printf("Warning: Wrong number of threads.\n");
+                    printf("[*] Warning: Wrong number of threads.\n");
                     exit(EXIT_FAILURE);
                 }
                 break;
             default:
-                fprintf(stderr, "Usage: %s [-gc] [-f TABLEFILENAME] [-n NB_PASSTOGENERATE] [-t THREADNUMBER]\n", argv[0]);
+                fprintf(stderr, "Usage: %s [-gc] [-f TABLE_FILENAME] [-n PASS_COUNT_PER_THREAD] [-t THREAD_COUNT]\n", argv[0]);
                 exit(EXIT_FAILURE); 
         }
     }
@@ -322,9 +331,16 @@ int main(int argc, char *argv[]) {
     switch(mode) {
         case GENERATE_MODE:
             begin = clock();
-            printf("Number of threads: %d\n",thread_number);
+            printf("[*] Threads used: %d\n\n",thread_number);
+            generateArgs = malloc(sizeof(GenerateArgs));            
+            generateArgs->fileName = malloc(sizeof(fileName));            
+            strcpy(generateArgs->fileName, fileName);            
+            generateArgs->user_number = user_number;
+            generateArgs->number = 0;
+            generateArgs->thread_count = thread_number;
+
             for (i = 0; i < thread_number; i++) {
-                pthread_create(&threads[i], NULL, generate_table, (void*)fileName);
+                pthread_create(&threads[i], NULL, generate_table, (void*)generateArgs);
             }
 
             break;
@@ -339,7 +355,7 @@ int main(int argc, char *argv[]) {
             
             break;
         default:
-            fprintf(stderr, "The program encountered an error and must close. Please try again.");
+            fprintf(stderr, "[*] The program encountered an error and must close. Please try again.");
             exit(EXIT_FAILURE);
     }
     #pragma endregion
@@ -352,10 +368,12 @@ int main(int argc, char *argv[]) {
 
     end = clock();
     double time_spent = (double) (end - begin) / CLOCKS_PER_SEC;
-    printf("Rainbow Table successfuly created in %f ! %d Threads used for %d pass generated! \n", time_spent, thread_number, FILE_BUFFER*thread_number);
+    printf("\n[*] Rainbow Table successfuly created in %.2f secondes! %d Threads used for %d pass generated. \n\n", time_spent, thread_number, user_number*thread_number);
     system("pause");
 
+    generateArgs = NULL;
     fileName = NULL;
+    free(generateArgs);
     free(fileName);
 
     #pragma endregion
