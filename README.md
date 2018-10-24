@@ -23,7 +23,6 @@ Basic UNIX like argument parsing.
 `main.exe -c 9F86D081884C7D659A2FEAA0C55AD015A3BF4F1B2B0B822CD15D6C15B0F00A08 -f password.txt`
 ##### Crack a hash using 8 threads using the generated file named `test.bin`.
 `main.exe -c 9F86D081884C7D659A2FEAA0C55AD015A3BF4F1B2B0B822CD15D6C15B0F00A08 -f test.bin -t 8`
-## Installation
-* A
-* B
-* C
+## Installation on Unix platforms
+* Go to src folder.
+* Use make in order to compile and build the project.
