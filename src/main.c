@@ -192,7 +192,7 @@ void* generate_table(void* arguments) {
     
         for (i = 0; i < args->rainbow_size; i++) {
             args->generated_count++;
-            if((args->generated_count%(args->rainbow_size*8/10)) == 0)
+            if((args->generated_count%(args->rainbow_size*args->thread_count/10)) == 0)
             {
                 printf("[*] Pass generated:  %d/%d -> %d%%\n",args->generated_count,args->rainbow_size*args->thread_count,((args->generated_count)*100)/(args->rainbow_size*args->thread_count));
             }     
@@ -201,9 +201,6 @@ void* generate_table(void* arguments) {
             for (j = 0; j < 50000; j++) {
                 passwordHashing(tail, hash);
                 reduce_hash(hash, tail, FALSE, j);
-                if(j==48000) {
-                    printf("\n%s", tail);
-                }
             }
             snprintf(fullChain, (PASSWORD_LENGTH*2)+2, "%s:%s", head, tail);
             add(&list, fullChain);
@@ -368,13 +365,17 @@ int main(int argc, char *argv[]) {
                     printf("[*] Warning: Wrong number of passwords to generate.\n");
                     exit(EXIT_FAILURE);
                 }
+                else if(rainbow_size < 9){
+                    printf("[*] Warning: Wrong number of passwords to generate. 10 Passwords to generate minimum.\n");
+                    exit(EXIT_FAILURE);
+                }
                 break;
             case 't':
                 thread_number = strtol(optarg, NULL, 10);
                 if(thread_number>8){
                     printf("[*] Warning: 8 Threads maximum.\n");
                     exit(EXIT_FAILURE);
-                }else if(thread_number<0){
+                }else if(thread_number<=0){
                     printf("[*] Warning: Wrong number of threads.\n");
                     exit(EXIT_FAILURE);
                 }
@@ -404,6 +405,7 @@ int main(int argc, char *argv[]) {
         case GENERATE_MODE:
             begin = clock();
             printf("[*] Threads used: %d\n\n",thread_number);
+            printf("[*] Processing start\n\n");
             generateArgs = malloc(sizeof(GenerateArgs));            
             generateArgs->fileName = malloc(sizeof(fileName));            
             strcpy(generateArgs->fileName, fileName);            
@@ -444,7 +446,6 @@ int main(int argc, char *argv[]) {
     end = clock();
     double time_spent = (double) (end - begin) / CLOCKS_PER_SEC;
     printf("\n[*] Rainbow Table successfuly created in %.2f secondes! %d Threads used for %d pass generated. \n\n", time_spent, thread_number, rainbow_size*thread_number);
-    system("pause");
 
     generateArgs = NULL;
     fileName = NULL;
