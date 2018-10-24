@@ -10,10 +10,10 @@
             "request": "launch",
             "program": "${workspaceFolder}/bin/main.exe",
             "args": [
-                "-c", "91AF6A171BE2A5B6B79273C1A0796DD59F59976D81581CA4C6D04C457DF742A4",
-                // "-g",
+                // "-c", "91AF6A171BE2A5B6B79273C1A0796DD59F59976D81581CA4C6D04C457DF742A4",
+                "-g",
                 "-f", "bin/password.txt",
-                "-n", "8",
+                "-n", "1000000",
                 "-t", "8"
 
             ],
