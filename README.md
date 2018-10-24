@@ -6,22 +6,22 @@
 Basic UNIX like argument parsing.
 
 ### Generating the table
-`main.exe -g -f TABLE_FILENAME [-n PASS_COUNT_PER_THREAD] [-t THREAD_COUNT]`
+`main.exe -g -f TABLE_FILENAME [-n CHAIN_COUNT] [-t THREAD_COUNT]`
 * `-g`: Starts the program in GENERATION_MODE
 * `-f TABLE_FILENAME` File to which the generated chains should be written in
-* `-n PASS_COUNT_PER_THREAD` Amount of chains to generate per thread (Default : 1 million)
+* `-n CHAIN_COUNT` Amount of chains to generate (Default : 1 million)
 * `-t THREAD_COUNT` Threads used to generate the table (Default : 4)
 
 #### Example
 
-##### Generate a table using 4 threads * 1 million chains per thread then write everything inside `password.txt`.
+##### Generate a table using 4 threads with 1 million chains then write everything inside `password.txt`.
 `main.exe -g -f password.txt`
 
-##### Generate a table using 8 threads * 500 chains per thread then write everything inside `test.bin`.
+##### Generate a table using 8 threads with 500 chains then write everything inside `test.bin`.
 `main.exe -g -f password.txt -n 500 -t 8`
 
 ### Cracking hashes
-`main.exe -c [HASH] -f TABLE_FILENAME [-t THREAD_COUNT]`
+`main.exe -c HASH_TO_CRACK -f TABLE_FILENAME [-t THREAD_COUNT]`
 * `-c`: Starts the program in CRACK_MODE
 * `-f TABLE_FILENAME` File to which the generated chains should be written in
 * `-t THREAD_COUNT` Threads used to crack the hash (Default : 4)
