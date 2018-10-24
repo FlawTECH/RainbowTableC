@@ -34,9 +34,10 @@ void randomString(char* output, int length) {
     output[length] = '\0';
 }
 
+
 /**
  * Hashes the given password using the SHA256 algorithm
- */ 
+ */
 void passwordHashing(char* password, unsigned char* hash) {
     SHA256_CTX ctx;
 	sha256_init(&ctx);
@@ -115,9 +116,11 @@ void writeFile(char* fileName, LinkedList* baseList) {
  * Converts a 32 char long hash to a 64 char long hash (for readability purposes)
  */ 
 void hash2string(unsigned char* hash, int length, char* string) {
-    for(int i = 0; i<length; i++) {
+    int i;
+	
+	for(i = 0; i<length; i++) {
         sprintf(string + i*2, "%02x", hash[i]); //Créer le hash avec l'argument "hash" que recoit la fonction
-    }
+	}
 }
 
 /**
@@ -176,7 +179,7 @@ int readFile(char* fileName, MultiLinkedList* list) {
 
 /**
  * Generates the rainbow table
- */ 
+ */
 void* generate_table(void* arguments) {
 
     GenerateArgs *args = (GenerateArgs*)arguments;
@@ -213,16 +216,16 @@ void* generate_table(void* arguments) {
  */ 
 void* crack_hash(void* hashToCrack) {
 
-    //Declarations / Instanciations
     int i, j, reducIndex;
-    int startFlag       = TRUE;
-    int isLongHash      = TRUE;
-    int waitToKill      = FALSE;
+    int startFlag = TRUE;
+    int isLongHash = TRUE;
+    int waitToKill = FALSE;
     int progress;
-    char*               startHash;   
-    char                tempHash[LENGTH_HASH+1];
-    char                tempPassword[PASSWORD_LENGTH+1];
-    MultiLinkedList     walker;
+
+    char* startHash;   
+    char tempHash[LENGTH_HASH+1];
+    char tempPassword[PASSWORD_LENGTH+1];
+    MultiLinkedList walker;
     
     //Copying the arguments to avoid unwanted memory access between threads
     startHash = malloc(LENGTH_HASH+1);
@@ -279,6 +282,7 @@ void* crack_hash(void* hashToCrack) {
                 break;
             }
         } while(walker->next != NULL);
+
         //Reporting progress
         if(i%500==0) {
             progress = (i/49999.)*100;
@@ -289,7 +293,7 @@ void* crack_hash(void* hashToCrack) {
     //Success or failure of thread
     pthread_mutex_lock(&mutex);
     if (global_hash_iscracked) {
-        printf("Hash found ! Computing plaintext ...\n");
+        printf("\nHash found ! Computing plaintext ...\n");
         strcpy(tempPassword, walker->head);
 
         for (i = 0; i < reducIndex; i++) {
@@ -298,7 +302,6 @@ void* crack_hash(void* hashToCrack) {
         }
 
         printf("Password found for %64s. \n==> %8s\n", startHash, tempPassword);
-        system("pause");
     } else {
         printf("Password not found, generate more hashes.");
     }
@@ -333,7 +336,7 @@ int main(int argc, char *argv[]) {
 
     //If no arguments
     if(argc == 1) {
-        fprintf(stderr, "Usage: %s [-gc] [-f TABLE_FILENAME] [-n PASS_COUNT_PER_THREAD] [-t THREAD_COUNT]\n", argv[0]);
+        fprintf(stderr, "Usage: %s [-g|c] [-f TABLE_FILENAME] [-n PASS_COUNT_PER_THREAD] [-t THREAD_COUNT]\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
@@ -381,7 +384,7 @@ int main(int argc, char *argv[]) {
                 }
                 break;
             default:
-                fprintf(stderr, "Usage: %s [-gc] [-f TABLE_FILENAME] [-n PASS_COUNT_PER_THREAD] [-t THREAD_COUNT]\n", argv[0]);
+                fprintf(stderr, "Usage: %s [-g|c] [-f TABLE_FILENAME] [-n PASS_COUNT_PER_THREAD] [-t THREAD_COUNT]\n", argv[0]);
                 exit(EXIT_FAILURE); 
         }
     }
@@ -445,8 +448,10 @@ int main(int argc, char *argv[]) {
 
     end = clock();
     double time_spent = (double) (end - begin) / CLOCKS_PER_SEC;
-    printf("\n[*] Rainbow Table successfuly created in %.2f secondes! %d Threads used for %d pass generated. \n\n", time_spent, thread_number, rainbow_size*thread_number);
-
+	if (mode == GENERATE_MODE) {
+		printf("\n[*] Rainbow Table successfuly created in %.2f secondes! %d Threads used for %d pass generated. \n\n", time_spent, thread_number, rainbow_size*thread_number);
+	}
+    
     generateArgs = NULL;
     fileName = NULL;
     free(generateArgs);
