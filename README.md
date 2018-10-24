@@ -21,7 +21,7 @@ Basic UNIX like argument parsing.
 `main.exe -g -f password.txt -n 500 -t 8`
 
 ### Cracking hashes
-`main.exe -c -f TABLE_FILENAME [-t THREAD_COUNT]`
+`main.exe -c [HASH] -f TABLE_FILENAME [-t THREAD_COUNT]`
 * `-c`: Starts the program in CRACK_MODE
 * `-f TABLE_FILENAME` File to which the generated chains should be written in
 * `-t THREAD_COUNT` Threads used to crack the hash (Default : 4)
@@ -35,4 +35,5 @@ Basic UNIX like argument parsing.
 `main.exe -c 9F86D081884C7D659A2FEAA0C55AD015A3BF4F1B2B0B822CD15D6C15B0F00A08 -f test.bin -t 8`
 
 ## Installation on Unix platforms
+* Go to src folder.
 * Use make in order to compile and build the project.
